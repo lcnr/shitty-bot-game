@@ -5,13 +5,18 @@ use crate::map::GridPos;
 use crate::map::Map;
 use crate::map::Place;
 use crate::GameState;
-use crate::Direction;
 use bevy::prelude::*;
+
+mod mesh;
+
+const UPPER_FLOOR: f32 = 0.6;
+const LOWER_FLOOR: f32 = 0.1;
 
 pub struct DrawPlugin;
 impl Plugin for DrawPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(init_map_system)
+        app.insert_resource(Msaa { samples: 4 })
+            .add_system(init_map_system)
             .add_system(update_map_system);
     }
 }
@@ -43,10 +48,11 @@ fn init_map_system(
     }
 
     commands.spawn_bundle(DirectionalLightBundle {
+        transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
         ..Default::default()
     });
     commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_xyz(map.width as f32, map.height as f32, 10.0)
+        transform: Transform::from_xyz(map.width as f32, map.height as f32, 15.0)
             .looking_at(Vec3::ZERO, Vec3::Z),
         ..Default::default()
     });
@@ -71,10 +77,10 @@ fn init_map_system(
                 Place::UpperFloor => {
                     commands.spawn_bundle(PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Box {
-                            max_z: 0.5,
+                            max_z: UPPER_FLOOR,
                             ..box_xy
                         })),
-                        material: materials.add(Color::rgb(0.5, 0.7, 0.5).into()),
+                        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
                         transform,
                         ..Default::default()
                     });
@@ -82,7 +88,7 @@ fn init_map_system(
                 Place::LowerFloor => {
                     commands.spawn_bundle(PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Box {
-                            max_z: 0.3,
+                            max_z: LOWER_FLOOR,
                             ..box_xy
                         })),
                         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
@@ -91,19 +97,8 @@ fn init_map_system(
                     });
                 }
                 Place::Ramp(dir) => {
-                    match dir {
-                        Direction::Up => transform.rotate(Quat::from_rotation_z(0.5)),
-                        Direction::Down => {}
-                        Direction::Left => {}
-                        Direction::Right => {}
-                    }
                     commands.spawn_bundle(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Box {
-                            min_z: -0.3,
-                            max_z: 0.0,
-                            max_y: 1.028039,
-                            ..box_xy
-                        })),
+                        mesh: meshes.add(mesh::slope_mesh(dir)),
                         material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
                         transform,
                         ..Default::default()
@@ -113,7 +108,7 @@ fn init_map_system(
                 Place::Wall => {
                     commands.spawn_bundle(PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Box {
-                            max_z: 0.8,
+                            max_z: 0.9,
                             ..box_xy
                         })),
                         material: materials.add(Color::rgb(0.7, 0.9, 0.7).into()),
