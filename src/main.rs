@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-// mod bot;
+mod bot;
 mod draw;
 mod map;
 
@@ -26,6 +26,6 @@ fn main() {
         .insert_resource(map::Map::dummy_new())
         .insert_resource(draw::DrawUpdates::empty())
         .add_plugin(draw::DrawPlugin)
-        // .add_system(bot::progress_world)
+        .add_system(bot::progress_world)
         .run();
 }
