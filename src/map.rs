@@ -40,7 +40,7 @@ impl Map {
             lines.push(line);
         }
 
-        let mut width = lines.iter().map(|l| l.len()).max().unwrap();
+        let width = lines.iter().map(|l| l.len()).max().unwrap();
         let mut layout = Vec::with_capacity(width * lines.len());
         for line in lines.iter() {
             let len = line.len();
@@ -70,9 +70,9 @@ impl Map {
 #[derive(Component)]
 
 pub enum EntityKind {
-    Bot,
+    Robot,
     Box,
 }
 
-#[derive(Component)]
+#[derive(Component, Copy, Clone, Eq, PartialEq, Debug)]
 pub struct GridPos(pub usize, pub usize);

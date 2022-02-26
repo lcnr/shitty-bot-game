@@ -11,7 +11,7 @@ enum GameState {
     Running,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     Up,
     Down,
@@ -26,6 +26,16 @@ fn main() {
         .insert_resource(map::Map::dummy_new())
         .insert_resource(draw::DrawUpdates::empty())
         .add_plugin(draw::DrawPlugin)
+        .add_startup_system(|mut commands: Commands| {
+            commands
+                .spawn()
+                .insert(map::GridPos(6, 3))
+                .insert(map::EntityKind::Robot);
+            commands
+                .spawn()
+                .insert(map::GridPos(4, 3))
+                .insert(map::EntityKind::Box);
+        })
         .add_system(bot::progress_world)
         .run();
 }

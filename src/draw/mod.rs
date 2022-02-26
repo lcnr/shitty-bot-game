@@ -58,10 +58,10 @@ fn init_map_system(
     });
 
     let box_xy = shape::Box {
-        min_x: 0.0,
-        max_x: 1.0,
-        min_y: 0.0,
-        max_y: 1.0,
+        min_x: -0.5,
+        max_x: 0.5,
+        min_y: -0.5,
+        max_y: 0.5,
         min_z: 0.0,
         max_z: 1.0,
     };
@@ -127,6 +127,47 @@ fn init_map_system(
                         ..Default::default()
                     });
                 }
+            }
+        }
+    }
+
+    for (entity, kind, position) in entities.iter() {
+        let height = match map.tile(position.0, position.0) {
+            Place::UpperFloor => UPPER_FLOOR,
+            Place::LowerFloor => LOWER_FLOOR,
+            Place::Ramp(_) => (UPPER_FLOOR + LOWER_FLOOR) / 2.0,
+            _ => todo!(),
+        };
+
+        let transform = Transform::from_xyz(
+            position.0 as f32 - map.width as f32 / 2.0,
+            position.1 as f32 - map.height as f32 / 2.0,
+            height,
+        );
+
+        match kind {
+            EntityKind::Robot => {
+                commands.get_or_spawn(entity).insert_bundle(PbrBundle {
+                    mesh: meshes.add(mesh::robot_mesh()),
+                    material: materials.add(Color::rgb(0.25, 0.12, 0.1).into()),
+                    transform,
+                    ..Default::default()
+                });
+            }
+            EntityKind::Box => {
+                commands.get_or_spawn(entity).insert_bundle(PbrBundle {
+                    mesh: meshes.add(Mesh::from(shape::Box {
+                        min_x: -0.4,
+                        max_x: 0.4,
+                        min_y: -0.4,
+                        max_y: 0.4,
+                        min_z: 0.0,
+                        max_z: 0.8,
+                    })),
+                    material: materials.add(Color::rgb(0.25, 0.12, 0.1).into()),
+                    transform,
+                    ..Default::default()
+                });
             }
         }
     }

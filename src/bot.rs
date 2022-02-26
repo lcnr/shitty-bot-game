@@ -125,6 +125,32 @@ pub fn run_bot_interpreter(bot: &Bot, state: &mut BotState, map: &Map) {
     }
 }
 
+fn dir_to_adjacent_tile(from: GridPos, to: GridPos) -> Direction {
+    if from.0 + 1 == to.0 {
+        return Direction::Right;
+    }
+    if from.0 == to.0 + 1 {
+        return Direction::Left;
+    }
+    if from.1 + 1 == to.1 {
+        return Direction::Up;
+    }
+    if from.1 == to.1 + 1 {
+        return Direction::Down;
+    }
+    panic!("bad inputs {:?} {:?}", from, to);
+}
+
+fn is_dirs_opposite(d1: Direction, d2: Direction) -> bool {
+    match (d1, d2) {
+        (Direction::Up, Direction::Down)
+        | (Direction::Down, Direction::Up)
+        | (Direction::Left, Direction::Right)
+        | (Direction::Right, Direction::Left) => true,
+        _ => false,
+    }
+}
+
 fn apply_bot_actions(
     bot: Entity,
     map: &Map,
@@ -135,64 +161,65 @@ fn apply_bot_actions(
 ) -> Vec<Step> {
     let mut render_steps = vec![];
 
-    let (_, bot, grid_pos, state) = queries.q0().get_mut(bot).unwrap();
+    let mut q = queries.q0();
+    let (_, bot, mut cur_grid_pos, mut state) = q.get_mut(bot).unwrap();
     let bot_action = state.steps.pop().unwrap();
 
     match bot_action {
         Step::Wait => (),
         Step::Walk => {
             render_steps.push(Step::Walk);
-            let target_grid_pos = match state.dir {
-                Direction::Up => GridPos(grid_pos.0, grid_pos.1 + 1),
-                Direction::Down => GridPos(grid_pos.0, grid_pos.1 - 1),
-                Direction::Left => GridPos(grid_pos.0 - 1, grid_pos.1),
-                Direction::Right => GridPos(grid_pos.0 + 1, grid_pos.1),
+            let tar_grid_pos = match state.dir {
+                Direction::Up => GridPos(cur_grid_pos.0, cur_grid_pos.1 + 1),
+                Direction::Down => GridPos(cur_grid_pos.0, cur_grid_pos.1 - 1),
+                Direction::Left => GridPos(cur_grid_pos.0 - 1, cur_grid_pos.1),
+                Direction::Right => GridPos(cur_grid_pos.0 + 1, cur_grid_pos.1),
             };
 
-            let cur_tile = map.tile(grid_pos.0, grid_pos.1);
-            let tar_tile = map.tile(target_grid_pos.0, target_grid_pos.1);
+            let cur_tile = map.tile(cur_grid_pos.0, cur_grid_pos.1);
+            let tar_tile = map.tile(tar_grid_pos.0, tar_grid_pos.1);
 
             let valid_move = match cur_tile {
                 Place::UpperFloor => match tar_tile {
-                    // allowed
-                    Place::UpperFloor => (),
-                    Place::Ramp(Direction) => (),
-                    Place::Void => true,
-                    Place::LowerFloor => (),
-                    Place::Exit => (),
-
-                    // disallowed
+                    Place::LowerFloor | Place::UpperFloor | Place::Void | Place::Exit => true,
+                    Place::Ramp(ramp_dir) => {
+                        dir_to_adjacent_tile(*cur_grid_pos, tar_grid_pos) == ramp_dir
+                    }
                     Place::Wall => false,
                 },
                 Place::LowerFloor => match tar_tile {
-                    // allowed
-                    Place::Ramp(Direction) => (),
-                    Place::Void => true,
-                    Place::LowerFloor => (),
-                    Place::Exit => (),
-                    // disallowed
+                    Place::Void | Place::LowerFloor | Place::Exit => true,
+                    Place::Ramp(ramp_dir) => {
+                        dir_to_adjacent_tile(tar_grid_pos, *cur_grid_pos) == ramp_dir
+                    }
                     Place::UpperFloor | Place::Wall => false,
                 },
-                Place::Ramp(Direction) => match tar_tile {
-                    // allowed
-                    Place::Ramp(Direction) => (),
-                    Place::Void => (),
-                    Place::LowerFloor => (),
-                    Place::UpperFloor => (),
-                    Place::Exit => (),
-                    Place::Ramp(Direction) => (),
-                    // disallowed
+                Place::Ramp(ramp_dir) => match tar_tile {
+                    Place::Void | Place::Exit => true,
+                    Place::LowerFloor => {
+                        dir_to_adjacent_tile(*cur_grid_pos, tar_grid_pos) == ramp_dir
+                    }
+                    Place::UpperFloor => {
+                        dir_to_adjacent_tile(tar_grid_pos, *cur_grid_pos) == ramp_dir
+                    }
+                    Place::Ramp(tar_ramp_dir) => {
+                        is_dirs_opposite(ramp_dir, tar_ramp_dir)
+                            && (dir_to_adjacent_tile(*cur_grid_pos, tar_grid_pos) == ramp_dir
+                                || dir_to_adjacent_tile(*cur_grid_pos, tar_grid_pos) == ramp_dir)
+                    }
                     Place::Wall => false,
                 },
                 Place::Void | Place::Wall | Place::Exit => unreachable!(),
             };
 
-            if target_grid_pos.0 < 0
-                || target_grid_pos.0 >= map.width
-                || target_grid_pos.1 < 0
-                || target_grid_pos.1 >= map.height
-            {
-                *grid_pos = target_grid_pos;
+            /*
+                this is where logic should go of checking if `tar_tile` is occupied by
+                a bot or a box. if it is we should effectively function-ify this match arm
+                and recurse, attempting to move the bot/box in the same direction as we are facing
+            */
+
+            if tar_grid_pos.0 < map.width || tar_grid_pos.1 < map.height {
+                *cur_grid_pos = tar_grid_pos;
             }
         }
         Step::UpdateDir(dir) => {
@@ -223,7 +250,8 @@ pub fn progress_world(
 
     bots.sort();
     for bot_id in bots {
-        let (_, bot, _, state) = queries.q0().get_mut(bot_id).unwrap();
+        let mut q = queries.q0();
+        let (_, bot, _, mut state) = q.get_mut(bot_id).unwrap();
         run_bot_interpreter(bot, &mut *state, map);
         let changes = apply_bot_actions(bot_id, map, &mut queries);
         // render_steps.push(changes);
