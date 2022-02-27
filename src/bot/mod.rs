@@ -1,12 +1,18 @@
+use std::fmt::Display;
+
 use bevy::prelude::*;
 
 use crate::draw::{self, DrawUpdates};
 use crate::map::*;
 use crate::Direction;
 
+mod edit;
+
 #[derive(Component)]
-pub struct Bot {
-    instructions: [u8; 32],
+pub struct BotData {
+    pub instructions: [u8; 32],
+    pub start_position: GridPos,
+    pub start_dir: Direction,
 }
 
 pub enum Memory {
@@ -14,8 +20,12 @@ pub enum Memory {
     Instruction(Instruction),
 }
 
-impl Bot {
-    pub fn from_iter<I: IntoIterator<Item = Memory>>(iter: I) -> Self {
+impl BotData {
+    pub fn from_iter<I: IntoIterator<Item = Memory>>(
+        pos: GridPos,
+        dir: Direction,
+        iter: I,
+    ) -> Self {
         let mut instructions = Vec::new();
         for mem in iter {
             match mem {
@@ -32,8 +42,10 @@ impl Bot {
         while instructions.len() < 32 {
             instructions.push(Instruction::Halt.repr());
         }
-        Bot {
+        BotData {
             instructions: instructions.try_into().expect("too long"),
+            start_position: pos,
+            start_dir: dir,
         }
     }
 }
@@ -92,6 +104,32 @@ pub enum Instruction {
     IfNotRobot,
 }
 
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Instruction::Halt => "halt",
+                Instruction::Walk => "walk",
+                Instruction::TurnAround => "turn around",
+                Instruction::TurnLeft => "turn left",
+                Instruction::TurnRight => "turn right",
+                Instruction::Wait => "wait",
+                Instruction::Goto => "goto",
+                Instruction::IfBox => "if box",
+                Instruction::IfWall => "if wall",
+                Instruction::IfEdge => "if edge",
+                Instruction::IfRobot => "if robot",
+                Instruction::IfNotBox => "if not box",
+                Instruction::IfNotWall => "if not wall",
+                Instruction::IfNotEdge => "if not edge",
+                Instruction::IfNotRobot => "if not robot",
+            }
+        )
+    }
+}
+
 impl Instruction {
     pub fn is_positive(self) -> bool {
         match self {
@@ -114,7 +152,7 @@ impl Instruction {
     }
 }
 
-pub fn run_bot_interpreter(bot: &Bot, pos: GridPos, state: &mut BotState, map: &Map) {
+pub fn run_bot_interpreter(bot: &BotData, pos: GridPos, state: &mut BotState, map: &Map) {
     if state.halted || state.steps.len() != 0 {
         return;
     }
@@ -189,7 +227,8 @@ pub fn run_bot_interpreter(bot: &Bot, pos: GridPos, state: &mut BotState, map: &
             state.current_instruction = arg;
         }
         Instruction::IfWall | Instruction::IfNotWall => {
-            let to_jump_or_not_to_jump = instr.is_positive() == matches!(map.tile(facing_grid_pos), Place::Wall);
+            let to_jump_or_not_to_jump =
+                instr.is_positive() == matches!(map.tile(facing_grid_pos), Place::Wall);
             let target = {
                 state.advance_instruction();
                 bot.instructions[state.current_instruction as usize]
@@ -251,87 +290,128 @@ fn apply_bot_actions(
     bot_id: Entity,
     map: &Map,
     queries: &mut QuerySet<(
-        QueryState<(Entity, &Bot, &mut GridPos, &mut BotState)>,
-        QueryState<(&EntityKind, &GridPos)>,
+        QueryState<(Entity, &BotData, &mut GridPos, &mut BotState)>,
+        QueryState<(Entity, &EntityKind, &GridPos)>,
+        QueryState<&mut GridPos>,
     )>,
 ) -> Vec<(Entity, draw::Step)> {
     let mut render_steps = vec![];
 
     let mut q = queries.q0();
-    let (_, _, mut cur_grid_pos, mut state) = q.get_mut(bot_id).unwrap();
+    let (_, _, cur_grid_pos, mut state) = q.get_mut(bot_id).unwrap();
     let bot_action = if let Some(action) = state.steps.pop() {
         action
     } else {
-        return Vec::new()
+        return Vec::new();
     };
-    
 
     match bot_action {
         Step::Wait => render_steps.push((bot_id, draw::Step::Idle)),
         Step::Walk => {
+            fn is_valid_move(
+                entity: Entity,
+                cur_tile_pos: GridPos,
+                cur_tile: Place,
+                tar_tile_pos: GridPos,
+                tar_tile: Place,
+                map: &Map,
+                blocking_entities: Query<(Entity, &EntityKind, &GridPos)>,
+            ) -> Vec<(Entity, draw::Step)> {
+                eprintln!(
+                    "is_valid_move({:?}, {:?}, {:?}, {:?})",
+                    cur_tile_pos, cur_tile, tar_tile_pos, tar_tile
+                );
+                let valid_move = match cur_tile {
+                    Place::UpperFloor => match tar_tile {
+                        Place::LowerFloor | Place::UpperFloor | Place::Void | Place::Exit => true,
+                        Place::Ramp(ramp_dir) => {
+                            dir_to_adjacent_tile(cur_tile_pos, tar_tile_pos) == ramp_dir
+                        }
+                        Place::Wall => false,
+                    },
+                    Place::LowerFloor => match tar_tile {
+                        Place::Void | Place::LowerFloor | Place::Exit => true,
+                        Place::Ramp(ramp_dir) => {
+                            dir_to_adjacent_tile(tar_tile_pos, cur_tile_pos) == ramp_dir
+                        }
+                        Place::UpperFloor | Place::Wall => false,
+                    },
+                    Place::Ramp(ramp_dir) => match tar_tile {
+                        Place::Void | Place::Exit => true,
+                        Place::LowerFloor => {
+                            dir_to_adjacent_tile(cur_tile_pos, tar_tile_pos) == ramp_dir
+                        }
+                        Place::UpperFloor => {
+                            dir_to_adjacent_tile(tar_tile_pos, cur_tile_pos) == ramp_dir
+                        }
+                        Place::Ramp(tar_ramp_dir) => {
+                            is_dirs_opposite(ramp_dir, tar_ramp_dir)
+                                && (dir_to_adjacent_tile(cur_tile_pos, tar_tile_pos) == ramp_dir
+                                    || dir_to_adjacent_tile(cur_tile_pos, tar_tile_pos) == ramp_dir)
+                        }
+                        Place::Wall => false,
+                    },
+                    Place::Void | Place::Exit | Place::Wall => unreachable!(),
+                };
+
+                let mut steps = vec![];
+                if valid_move {
+                    steps.push((entity, draw::Step::Move(cur_tile_pos, tar_tile_pos)))
+                }
+                if let Some((e, _, pos)) = blocking_entities.iter().find(|(_, _, pos)| **pos == tar_tile_pos) && valid_move {
+                    let dir = dir_to_adjacent_tile(cur_tile_pos, tar_tile_pos);
+                    let new_tar_tile_pos = match dir {
+                        Direction::Up => GridPos(pos.0, pos.1 + 1),
+                        Direction::Down => GridPos(pos.0, pos.1 - 1),
+                        Direction::Left => GridPos(pos.0 - 1, pos.1),
+                        Direction::Right => GridPos(pos.0 + 1, pos.1),
+                    };
+                    let new_tar_tile = map.tile(new_tar_tile_pos);
+                    match &*is_valid_move(e, tar_tile_pos, tar_tile, new_tar_tile_pos, new_tar_tile, map, blocking_entities) {
+                        [] => steps.clear(),
+                        nested_steps @ [..] => steps.extend(nested_steps),
+                    };
+                }
+                steps
+            }
+
             let tar_grid_pos = match state.dir {
                 Direction::Up => GridPos(cur_grid_pos.0, cur_grid_pos.1 + 1),
                 Direction::Down => GridPos(cur_grid_pos.0, cur_grid_pos.1 - 1),
                 Direction::Left => GridPos(cur_grid_pos.0 - 1, cur_grid_pos.1),
                 Direction::Right => GridPos(cur_grid_pos.0 + 1, cur_grid_pos.1),
             };
-
             let cur_tile = map.tile(*cur_grid_pos);
             let tar_tile = map.tile(tar_grid_pos);
-            println!("{:?} {:?}", cur_tile, tar_tile);
+            let steps = is_valid_move(
+                bot_id,
+                *cur_grid_pos,
+                cur_tile,
+                tar_grid_pos,
+                tar_tile,
+                map,
+                queries.q1(),
+            );
+            dbg!(&steps);
 
-            let valid_move = match cur_tile {
-                Place::UpperFloor => match tar_tile {
-                    Place::LowerFloor | Place::UpperFloor | Place::Void | Place::Exit => true,
-                    Place::Ramp(ramp_dir) => {
-                        dir_to_adjacent_tile(*cur_grid_pos, tar_grid_pos) == ramp_dir
-                    }
-                    Place::Wall => false,
-                },
-                Place::LowerFloor => match tar_tile {
-                    Place::Void | Place::LowerFloor | Place::Exit => true,
-                    Place::Ramp(ramp_dir) => {
-                        dir_to_adjacent_tile(tar_grid_pos, *cur_grid_pos) == ramp_dir
-                    }
-                    Place::UpperFloor | Place::Wall => false,
-                },
-                Place::Ramp(ramp_dir) => match tar_tile {
-                    Place::Void | Place::Exit => true,
-                    Place::LowerFloor => {
-                        dir_to_adjacent_tile(*cur_grid_pos, tar_grid_pos) == ramp_dir
-                    }
-                    Place::UpperFloor => {
-                        dir_to_adjacent_tile(tar_grid_pos, *cur_grid_pos) == ramp_dir
-                    }
-                    Place::Ramp(tar_ramp_dir) => {
-                        is_dirs_opposite(ramp_dir, tar_ramp_dir)
-                            && (dir_to_adjacent_tile(*cur_grid_pos, tar_grid_pos) == ramp_dir
-                                || dir_to_adjacent_tile(*cur_grid_pos, tar_grid_pos) == ramp_dir)
-                    }
-                    Place::Wall => false,
-                },
-                Place::Void | Place::Exit | Place::Wall => unreachable!(),
-            };
-            
-            /*
-                this is where logic should go of checking if `tar_tile` is occupied by
-                a bot or a box. if it is we should effectively function-ify this match arm
-                and recurse, attempting to move the bot/box in the same direction as we are facing
-            */
-
-            dbg!(valid_move);
-            if valid_move {
-                if let Place::Void | Place::Exit = tar_tile {
-                    state.steps.clear();
-                    state.halted = true;
-                }
-
-                render_steps.push((bot_id, draw::Step::Move(*cur_grid_pos, tar_grid_pos)));
-                *cur_grid_pos = tar_grid_pos;
-            } else {
-                render_steps.push((bot_id, draw::Step::MoveFail));
+            if let [] = &*steps {
+                render_steps.push((bot_id, draw::Step::MoveFail))
             }
 
+            for (e, step) in steps {
+                render_steps.push((e, step));
+                if let draw::Step::Move(_, tar_pos) = step {
+                    if let Place::Void | Place::Exit = map.tile(tar_pos) {
+                        let mut q = queries.q0();
+                        if let Ok((_, _, _, mut state)) = q.get_mut(e) {
+                            state.steps.clear();
+                            state.halted = true;
+                        }
+                    }
+                    let mut q = queries.q2();
+                    *q.get_mut(e).unwrap() = tar_pos;
+                }
+            }
         }
         Step::UpdateDir(dir) => {
             render_steps.push((bot_id, draw::Step::UpdateDir(state.dir, dir)));
@@ -346,8 +426,9 @@ pub fn progress_world(
     mut render_steps: ResMut<DrawUpdates>,
     map: Res<Map>,
     mut queries: QuerySet<(
-        QueryState<(Entity, &Bot, &mut GridPos, &mut BotState)>,
-        QueryState<(&EntityKind, &GridPos)>,
+        QueryState<(Entity, &BotData, &mut GridPos, &mut BotState)>,
+        QueryState<(Entity, &EntityKind, &GridPos)>,
+        QueryState<&mut GridPos>,
     )>,
 ) {
     if let 0 = &render_steps.data.len() {

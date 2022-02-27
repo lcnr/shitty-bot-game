@@ -9,7 +9,6 @@ use crate::map::GridPos;
 use crate::map::Map;
 use crate::map::Place;
 use crate::Direction;
-use crate::GameState;
 use bevy::prelude::*;
 
 mod mesh;
@@ -17,21 +16,11 @@ mod mesh;
 const UPPER_FLOOR: f32 = 0.6;
 const LOWER_FLOOR: f32 = 0.1;
 
-pub struct DrawPlugin;
-impl Plugin for DrawPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(Msaa { samples: 4 })
-            .insert_resource(DrawTimer(Timer::from_seconds(0.0, false)))
-            .add_system(init_map_system)
-            .add_system(update_map_system);
-    }
-}
-
 pub struct DrawUpdates {
     pub data: VecDeque<Vec<(Entity, Step)>>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Step {
     Idle,
     Move(GridPos, GridPos),
@@ -47,20 +36,15 @@ impl DrawUpdates {
     }
 }
 
-fn init_map_system(
+pub fn init_map_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    game_state: Res<GameState>,
     map: Res<Map>,
     entities: Query<(Entity, &EntityKind, &GridPos)>,
     robots: Query<&BotState>,
 ) {
-    if game_state.is_changed() && *game_state == GameState::Programming {
-        // ok
-    } else {
-        return;
-    }
+    commands.insert_resource(DrawTimer(Timer::from_seconds(0.0, false)));
 
     commands.spawn_bundle(DirectionalLightBundle {
         transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
@@ -155,7 +139,8 @@ fn init_map_system(
                 commands.get_or_spawn(entity).insert_bundle(PbrBundle {
                     mesh: meshes.add(mesh::robot_mesh()),
                     material: materials.add(Color::rgb(0.25, 0.12, 0.1).into()),
-                    transform: transform.with_rotation(Quat::from_rotation_z(dir_to_radians(state.dir))),
+                    transform: transform
+                        .with_rotation(Quat::from_rotation_z(dir_to_radians(state.dir))),
                     ..Default::default()
                 });
             }
@@ -186,7 +171,7 @@ impl Deref for DrawTimer {
     }
 }
 
-fn update_map_system(
+pub fn update_map_system(
     mut events: ResMut<DrawUpdates>,
     time: Res<Time>,
     mut timer: ResMut<DrawTimer>,
