@@ -2587,6 +2587,8 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "enum-repr",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

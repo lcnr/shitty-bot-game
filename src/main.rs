@@ -27,14 +27,17 @@ pub enum Direction {
 }
 
 fn main() {
+    let levels = map::read_levels("./levels.json");
     App::new()
         .add_plugins(DefaultPlugins)
         .add_state(GameState::Programming)
-        .insert_resource(map::Map::dummy_new())
+        .insert_resource(levels.levels[0].map.clone())
         .insert_resource(draw::DrawUpdates::empty())
+        .add_system(ui::button_system)
         .add_system_set(
-            SystemSet::on_enter(GameState::Programming).with_system(draw::init_map_system)
-            .with_system(ui::programming_ui),
+            SystemSet::on_enter(GameState::Programming)
+                .with_system(draw::init_map_system)
+                .with_system(ui::programming_ui),
         )
         .add_system_set(
             SystemSet::on_update(GameState::Running)
