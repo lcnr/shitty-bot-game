@@ -1,7 +1,7 @@
 use crate::Direction;
 use bevy::prelude::*;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum Place {
     UpperFloor,
     LowerFloor,
@@ -61,7 +61,7 @@ impl Map {
         Map::from_str(include_str!("../example.map"))
     }
 
-    pub fn tile(&self, x: usize, y: usize) -> Place {
+    pub fn tile(&self, GridPos(x, y): GridPos) -> Place {
         assert!(x < self.width && y < self.height);
         self.layout[y * self.width + x]
     }

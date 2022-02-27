@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::draw::DrawUpdates;
+use crate::draw::{self, DrawUpdates};
 use crate::map::*;
 use crate::Direction;
 
@@ -9,13 +9,43 @@ pub struct Bot {
     instructions: [u8; 32],
 }
 
-enum Step {
+pub enum Memory {
+    Data(u8),
+    Instruction(Instruction),
+}
+
+impl Bot {
+    pub fn from_iter<I: IntoIterator<Item = Memory>>(iter: I) -> Self {
+        let mut instructions = Vec::new();
+        for mem in iter {
+            match mem {
+                Memory::Data(val) => {
+                    assert!(val < 32);
+                    instructions.push(val);
+                }
+                Memory::Instruction(instr) => {
+                    instructions.push(instr.repr());
+                }
+            }
+        }
+
+        while instructions.len() < 32 {
+            instructions.push(Instruction::Halt.repr());
+        }
+        Bot {
+            instructions: instructions.try_into().expect("too long"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Step {
     Wait,
     Walk,
     UpdateDir(Direction),
 }
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct BotState {
     halted: bool,
     current_instruction: u8,
@@ -24,6 +54,15 @@ pub struct BotState {
 }
 
 impl BotState {
+    pub fn new(dir: Direction) -> Self {
+        BotState {
+            halted: false,
+            current_instruction: 0,
+            steps: Vec::new(),
+            dir,
+        }
+    }
+
     fn advance_instruction(&mut self) {
         if self.current_instruction == 31 {
             self.current_instruction = 0;
@@ -33,9 +72,9 @@ impl BotState {
     }
 }
 
+#[derive(Clone, Copy)]
 #[enum_repr::EnumRepr(type = "u8", implicit = true)]
-enum Instruction {
-    Skip,
+pub enum Instruction {
     Halt,
     Walk,
     TurnAround,
@@ -53,9 +92,43 @@ enum Instruction {
     IfNotRobot,
 }
 
-pub fn run_bot_interpreter(bot: &Bot, state: &mut BotState, map: &Map) {
-    match Instruction::from_repr(bot.instructions[state.current_instruction as usize]).unwrap() {
-        Instruction::Skip => state.advance_instruction(),
+impl Instruction {
+    pub fn is_positive(self) -> bool {
+        match self {
+            Instruction::Halt
+            | Instruction::Walk
+            | Instruction::TurnAround
+            | Instruction::TurnLeft
+            | Instruction::TurnRight
+            | Instruction::Wait
+            | Instruction::Goto => unreachable!(),
+            Instruction::IfBox
+            | Instruction::IfWall
+            | Instruction::IfEdge
+            | Instruction::IfRobot => true,
+            Instruction::IfNotBox
+            | Instruction::IfNotWall
+            | Instruction::IfNotEdge
+            | Instruction::IfNotRobot => false,
+        }
+    }
+}
+
+pub fn run_bot_interpreter(bot: &Bot, pos: GridPos, state: &mut BotState, map: &Map) {
+    if state.halted || state.steps.len() != 0 {
+        return;
+    }
+
+    let facing_grid_pos = match state.dir {
+        Direction::Up => GridPos(pos.0, pos.1 + 1),
+        Direction::Down => GridPos(pos.0, pos.1 - 1),
+        Direction::Left => GridPos(pos.0 - 1, pos.1),
+        Direction::Right => GridPos(pos.0 + 1, pos.1),
+    };
+
+    let instr =
+        Instruction::from_repr(bot.instructions[state.current_instruction as usize]).unwrap();
+    match instr {
         Instruction::Halt => state.halted = true,
         Instruction::Walk => {
             let arg = {
@@ -65,6 +138,7 @@ pub fn run_bot_interpreter(bot: &Bot, state: &mut BotState, map: &Map) {
             for _ in 0..arg {
                 state.steps.push(Step::Walk);
             }
+            println!("{:?}", state.steps);
             state.advance_instruction();
         }
         Instruction::TurnAround => {
@@ -114,13 +188,35 @@ pub fn run_bot_interpreter(bot: &Bot, state: &mut BotState, map: &Map) {
             };
             state.current_instruction = arg;
         }
+        Instruction::IfWall | Instruction::IfNotWall => {
+            let to_jump_or_not_to_jump = instr.is_positive() == matches!(map.tile(facing_grid_pos), Place::Wall);
+            let target = {
+                state.advance_instruction();
+                bot.instructions[state.current_instruction as usize]
+            };
+
+            if to_jump_or_not_to_jump {
+                state.current_instruction = target;
+            }
+        }
+        Instruction::IfEdge | Instruction::IfNotEdge => {
+            let to_jump_or_not_to_jump = instr.is_positive()
+                == (matches!(map.tile(pos), Place::UpperFloor)
+                    && matches!(map.tile(facing_grid_pos), Place::LowerFloor))
+                || matches!(map.tile(pos), Place::Void);
+            let target = {
+                state.advance_instruction();
+                bot.instructions[state.current_instruction as usize]
+            };
+
+            if to_jump_or_not_to_jump {
+                state.current_instruction = target;
+            }
+        }
+
         Instruction::IfBox => todo!(),
-        Instruction::IfWall => todo!(),
-        Instruction::IfEdge => todo!(),
-        Instruction::IfRobot => todo!(),
         Instruction::IfNotBox => todo!(),
-        Instruction::IfNotWall => todo!(),
-        Instruction::IfNotEdge => todo!(),
+        Instruction::IfRobot => todo!(),
         Instruction::IfNotRobot => todo!(),
     }
 }
@@ -152,23 +248,27 @@ fn is_dirs_opposite(d1: Direction, d2: Direction) -> bool {
 }
 
 fn apply_bot_actions(
-    bot: Entity,
+    bot_id: Entity,
     map: &Map,
     queries: &mut QuerySet<(
         QueryState<(Entity, &Bot, &mut GridPos, &mut BotState)>,
-        QueryState<(Option<&BotState>, &GridPos)>,
+        QueryState<(&EntityKind, &GridPos)>,
     )>,
-) -> Vec<Step> {
+) -> Vec<(Entity, draw::Step)> {
     let mut render_steps = vec![];
 
     let mut q = queries.q0();
-    let (_, bot, mut cur_grid_pos, mut state) = q.get_mut(bot).unwrap();
-    let bot_action = state.steps.pop().unwrap();
+    let (_, _, mut cur_grid_pos, mut state) = q.get_mut(bot_id).unwrap();
+    let bot_action = if let Some(action) = state.steps.pop() {
+        action
+    } else {
+        return Vec::new()
+    };
+    
 
     match bot_action {
         Step::Wait => (),
         Step::Walk => {
-            render_steps.push(Step::Walk);
             let tar_grid_pos = match state.dir {
                 Direction::Up => GridPos(cur_grid_pos.0, cur_grid_pos.1 + 1),
                 Direction::Down => GridPos(cur_grid_pos.0, cur_grid_pos.1 - 1),
@@ -176,8 +276,9 @@ fn apply_bot_actions(
                 Direction::Right => GridPos(cur_grid_pos.0 + 1, cur_grid_pos.1),
             };
 
-            let cur_tile = map.tile(cur_grid_pos.0, cur_grid_pos.1);
-            let tar_tile = map.tile(tar_grid_pos.0, tar_grid_pos.1);
+            let cur_tile = map.tile(*cur_grid_pos);
+            let tar_tile = map.tile(tar_grid_pos);
+            println!("{:?} {:?}", cur_tile, tar_tile);
 
             let valid_move = match cur_tile {
                 Place::UpperFloor => match tar_tile {
@@ -211,19 +312,24 @@ fn apply_bot_actions(
                 },
                 Place::Void | Place::Wall | Place::Exit => unreachable!(),
             };
-
+            
             /*
                 this is where logic should go of checking if `tar_tile` is occupied by
                 a bot or a box. if it is we should effectively function-ify this match arm
                 and recurse, attempting to move the bot/box in the same direction as we are facing
             */
 
-            if tar_grid_pos.0 < map.width || tar_grid_pos.1 < map.height {
+            dbg!(valid_move);
+            if valid_move {
+                render_steps.push((bot_id, draw::Step::Move(*cur_grid_pos, tar_grid_pos)));
                 *cur_grid_pos = tar_grid_pos;
+            } else {
+                render_steps.push((bot_id, draw::Step::MoveFail));
             }
+
         }
         Step::UpdateDir(dir) => {
-            render_steps.push(Step::UpdateDir(dir));
+            render_steps.push((bot_id, draw::Step::UpdateDir(state.dir, dir)));
             state.dir = dir;
         }
     }
@@ -232,28 +338,32 @@ fn apply_bot_actions(
 }
 
 pub fn progress_world(
-    render_steps: ResMut<DrawUpdates>,
+    mut render_steps: ResMut<DrawUpdates>,
     map: Res<Map>,
     mut queries: QuerySet<(
         QueryState<(Entity, &Bot, &mut GridPos, &mut BotState)>,
-        QueryState<(Option<&BotState>, &GridPos)>,
+        QueryState<(&EntityKind, &GridPos)>,
     )>,
 ) {
+    if let 0 = &render_steps.data.len() {
+    } else {
+        return;
+    }
+
     // `Res<T>: Copy` cannot be proven ???
     let map = &*map;
     let mut bots = queries
         .q0()
         .iter()
-        .filter(|(_, _, _, state)| state.halted == false)
         .map(|(e, _, _, _)| e)
         .collect::<Vec<Entity>>();
 
     bots.sort();
     for bot_id in bots {
         let mut q = queries.q0();
-        let (_, bot, _, mut state) = q.get_mut(bot_id).unwrap();
-        run_bot_interpreter(bot, &mut *state, map);
+        let (_, bot, pos, mut state) = q.get_mut(bot_id).unwrap();
+        run_bot_interpreter(bot, *pos, &mut *state, map);
         let changes = apply_bot_actions(bot_id, map, &mut queries);
-        // render_steps.push(changes);
+        render_steps.data.push_back(changes);
     }
 }
