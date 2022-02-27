@@ -3,6 +3,7 @@ use std::ops::Add;
 use std::ops::Deref;
 use std::ops::Mul;
 
+use crate::bot::BotState;
 use crate::map::EntityKind;
 use crate::map::GridPos;
 use crate::map::Map;
@@ -53,6 +54,7 @@ fn init_map_system(
     game_state: Res<GameState>,
     map: Res<Map>,
     entities: Query<(Entity, &EntityKind, &GridPos)>,
+    robots: Query<&BotState>,
 ) {
     if game_state.is_changed() && *game_state == GameState::Programming {
         // ok
@@ -149,10 +151,11 @@ fn init_map_system(
 
         match kind {
             EntityKind::Robot => {
+                let state = robots.get(entity).expect("bot without bot state");
                 commands.get_or_spawn(entity).insert_bundle(PbrBundle {
                     mesh: meshes.add(mesh::robot_mesh()),
                     material: materials.add(Color::rgb(0.25, 0.12, 0.1).into()),
-                    transform,
+                    transform: transform.with_rotation(Quat::from_rotation_z(dir_to_radians(state.dir))),
                     ..Default::default()
                 });
             }

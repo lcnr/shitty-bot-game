@@ -9,9 +9,9 @@ use bot::Memory;
 
 #[derive(PartialEq, Eq)]
 enum GameState {
-    StartScreen,
+    // StartScreen,
     Programming,
-    Running,
+    // Running,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

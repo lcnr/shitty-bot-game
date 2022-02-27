@@ -50,7 +50,7 @@ pub struct BotState {
     halted: bool,
     current_instruction: u8,
     steps: Vec<Step>,
-    dir: Direction,
+    pub dir: Direction,
 }
 
 impl BotState {
@@ -267,7 +267,7 @@ fn apply_bot_actions(
     
 
     match bot_action {
-        Step::Wait => (),
+        Step::Wait => render_steps.push((bot_id, draw::Step::Idle)),
         Step::Walk => {
             let tar_grid_pos = match state.dir {
                 Direction::Up => GridPos(cur_grid_pos.0, cur_grid_pos.1 + 1),
@@ -310,7 +310,7 @@ fn apply_bot_actions(
                     }
                     Place::Wall => false,
                 },
-                Place::Void | Place::Wall | Place::Exit => unreachable!(),
+                Place::Void | Place::Exit | Place::Wall => unreachable!(),
             };
             
             /*
@@ -321,6 +321,11 @@ fn apply_bot_actions(
 
             dbg!(valid_move);
             if valid_move {
+                if let Place::Void | Place::Exit = tar_tile {
+                    state.steps.clear();
+                    state.halted = true;
+                }
+
                 render_steps.push((bot_id, draw::Step::Move(*cur_grid_pos, tar_grid_pos)));
                 *cur_grid_pos = tar_grid_pos;
             } else {
