@@ -51,9 +51,14 @@ pub fn init_map_system(
         transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
         ..Default::default()
     });
+    let viewing_pos = Vec3::new(map.width as f32, map.height as f32, 15.0);
     commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_xyz(map.width as f32, map.height as f32, 15.0)
-            .looking_at(Vec3::ZERO, Vec3::Z),
+        transform: Transform::from_translation(viewing_pos)
+            .looking_at(Vec3::ZERO, Vec3::Z)
+            .with_translation(
+                viewing_pos - (Vec3::X * map.width as f32 / 3.0)
+                    + (Vec3::Y * map.height as f32 / 3.0),
+            ),
         ..Default::default()
     });
 

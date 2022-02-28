@@ -11,9 +11,9 @@ mod util;
 
 use bot::BotData;
 use bot::BotState;
-use map::BoxData;
 use bot::Instruction;
 use bot::Memory;
+use map::BoxData;
 use map::GridPos;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -58,16 +58,17 @@ fn main() {
                             world.entity_mut(entity).insert(data);
                         }
                     })
-                    .exclusive_system()
-                    .label("spawn_stuff"),
+                    .exclusive_system(),
                 )
-                .with_system(draw::init_map_system.after("spawn_stuff")),
+                .with_system(draw::init_map_system),
         )
         .add_system_set(
             SystemSet::on_update(GameState::Programming).with_system(ui::programming::update),
         )
         .add_system_set(
-            SystemSet::on_exit(GameState::Programming).with_system(util::delete_local_entities),
+            SystemSet::on_exit(GameState::Programming)
+                .with_system(util::delete_local_entities)
+                .with_system(ui::programming::exit),
         )
         .add_system_set(
             SystemSet::on_enter(GameState::Running)

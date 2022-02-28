@@ -2,11 +2,11 @@ use crate::bot::Instruction;
 use std::array;
 use std::num::ParseIntError;
 pub struct InstructionsEditor {
-    user_names: [String; 32],
-    user_values: [String; 32],
-    instructions: [u8; 32],
+    pub user_names: [String; 32],
+    pub user_values: [String; 32],
+    pub instructions: [u8; 32],
     active_cell: Option<(bool, usize)>,
-    error: Option<String>,
+    pub error: Option<String>,
 }
 
 impl InstructionsEditor {
@@ -19,6 +19,16 @@ impl InstructionsEditor {
             active_cell: None,
             error: None,
         }
+    }
+
+    pub fn active_cell_data(&mut self) -> Option<&mut String> {
+        self.active_cell.map(|(b, i)| {
+            if b {
+                &mut self.user_names[i]
+            } else {
+                &mut self.user_values[i]
+            }
+        })
     }
 
     pub fn check_and_update_cell(&mut self, was_name: bool, cell: usize) {
@@ -157,10 +167,11 @@ impl InstructionsEditor {
         self.user_values[cell] = self.instructions[cell].to_string();
     }
 
-    pub fn on_selection_quit(&mut self, new_cell: Option<(bool, usize)>) {
+    pub fn on_selection_quit(&mut self, new_cell: Option<(bool, usize)>) -> Option<(bool, usize)> {
         let old = self.active_cell.take();
         self.active_cell = new_cell;
-        let (was_name, cell) = if let Some(x) = old { x } else { return };
+        let (was_name, cell) = if let Some(x) = old { x } else { return None };
         self.check_and_update_cell(was_name, cell);
+        old
     }
 }
