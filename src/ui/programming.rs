@@ -204,6 +204,7 @@ pub fn update(
             break;
         };
 
+        // TODO: numpad + tab support
         let c = match input {
             KeyCode::A => 'a',
             KeyCode::B => 'b',
