@@ -32,6 +32,7 @@ impl InstructionsEditor {
     }
 
     pub fn check_and_update_cell(&mut self, was_name: bool, cell: usize) {
+        self.error = None;
         // normalize and parse the new value proved by the user,
         // updating the `instructions` and other part of `user_x`.
         if was_name {

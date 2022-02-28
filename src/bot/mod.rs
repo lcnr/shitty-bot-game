@@ -172,6 +172,8 @@ pub fn run_bot_interpreter(
 
     let instr =
         Instruction::from_repr(bot.instructions[state.current_instruction as usize]).unwrap();
+    state.advance_instruction();
+    // TODO: boxy, fix this <3, good night
     match instr {
         Instruction::Halt => state.halted = true,
         Instruction::Walk => {

@@ -9,7 +9,7 @@ use bevy::prelude::*;
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const VALID_MEM: Color = Color::rgb(0.1, 0.1, 0.1);
-const INVALID_MEM: Color = Color::rgb(0.3, 0.3, 0.8);
+const INVALID_MEM: Color = Color::rgb(0.8, 0.3, 0.3);
 const SELECTED_MEM: Color = Color::rgb(0.1, 0.5, 0.1);
 
 pub struct MemUi {
@@ -271,6 +271,10 @@ pub fn update(
             } else {
                 *color = INVALID_MEM.into();
             }
+        }
+
+        if let Some(s) = mem.active_cell_data() {
+            s.clear();
         }
     }
 

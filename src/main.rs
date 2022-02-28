@@ -106,13 +106,7 @@ fn main() {
                 .insert(bot::BotData::from_iter(
                     map::GridPos(3, 3),
                     Direction::Right,
-                    [
-                        Memory::Instruction(Instruction::Walk),
-                        Memory::Data(5),
-                        Memory::Instruction(Instruction::TurnLeft),
-                        Memory::Instruction(Instruction::Goto),
-                        Memory::Data(0),
-                    ],
+                    [],
                 ))
                 .insert(bot::BotState::new(Direction::Right))
                 .insert(map::EntityKind::Robot);
