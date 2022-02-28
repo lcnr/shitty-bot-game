@@ -120,11 +120,16 @@ impl Map {
     }
 }
 
-#[derive(Component)]
+#[derive(Copy, Clone, Component)]
 
 pub enum EntityKind {
     Robot,
     Box,
+}
+
+#[derive(Copy, Clone, Component)]
+pub struct BoxData {
+    pub start_position: GridPos,
 }
 
 #[derive(Component, Copy, Clone, Eq, PartialEq, Debug)]

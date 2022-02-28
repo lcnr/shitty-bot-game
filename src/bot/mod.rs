@@ -6,7 +6,7 @@ use crate::draw::{self, DrawUpdates};
 use crate::map::*;
 use crate::Direction;
 
-mod edit;
+pub mod edit;
 
 #[derive(Component)]
 pub struct BotData {
@@ -152,7 +152,13 @@ impl Instruction {
     }
 }
 
-pub fn run_bot_interpreter(bot: &BotData, pos: GridPos, state: &mut BotState, map: &Map) {
+pub fn run_bot_interpreter(
+    bot: &BotData,
+    pos: GridPos,
+    state: &mut BotState,
+    map: &Map,
+    entity_on_tile_facing: Option<EntityKind>,
+) {
     if state.halted || state.steps.len() != 0 {
         return;
     }
@@ -253,10 +259,30 @@ pub fn run_bot_interpreter(bot: &BotData, pos: GridPos, state: &mut BotState, ma
             }
         }
 
-        Instruction::IfBox => todo!(),
-        Instruction::IfNotBox => todo!(),
-        Instruction::IfRobot => todo!(),
-        Instruction::IfNotRobot => todo!(),
+        Instruction::IfBox | Instruction::IfNotBox => {
+            let cond =
+                instr.is_positive() == matches!(entity_on_tile_facing, Some(EntityKind::Box));
+            let target = {
+                state.advance_instruction();
+                bot.instructions[state.current_instruction as usize]
+            };
+
+            if cond {
+                state.current_instruction = target;
+            }
+        }
+        Instruction::IfRobot | Instruction::IfNotRobot => {
+            let cond =
+                instr.is_positive() == matches!(entity_on_tile_facing, Some(EntityKind::Robot));
+            let target = {
+                state.advance_instruction();
+                bot.instructions[state.current_instruction as usize]
+            };
+
+            if cond {
+                state.current_instruction = target;
+            }
+        }
     }
 }
 
@@ -422,6 +448,15 @@ fn apply_bot_actions(
     render_steps
 }
 
+pub fn entity_on_tile(
+    pos: GridPos,
+    q: Query<(Entity, &EntityKind, &GridPos)>,
+) -> Option<EntityKind> {
+    q.iter()
+        .find(|(_, _, pos2)| pos == **pos2)
+        .map(|(_, kind, _)| *kind)
+}
+
 pub fn progress_world(
     mut render_steps: ResMut<DrawUpdates>,
     map: Res<Map>,
@@ -447,8 +482,12 @@ pub fn progress_world(
     bots.sort();
     for bot_id in bots {
         let mut q = queries.q0();
+        let (_, _, pos, _) = q.get(bot_id).unwrap();
+        let entity_kind = entity_on_tile(*pos, queries.q1());
+        let mut q = queries.q0();
         let (_, bot, pos, mut state) = q.get_mut(bot_id).unwrap();
-        run_bot_interpreter(bot, *pos, &mut *state, map);
+
+        run_bot_interpreter(bot, *pos, &mut *state, map, entity_kind);
         let changes = apply_bot_actions(bot_id, map, &mut queries);
         render_steps.data.push_back(changes);
     }

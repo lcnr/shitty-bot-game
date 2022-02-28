@@ -3,6 +3,7 @@ use std::ops::Add;
 use std::ops::Deref;
 use std::ops::Mul;
 
+use crate::bot::BotData;
 use crate::bot::BotState;
 use crate::map::EntityKind;
 use crate::map::GridPos;
@@ -42,7 +43,7 @@ pub fn init_map_system(
     mut materials: ResMut<Assets<StandardMaterial>>,
     map: Res<Map>,
     entities: Query<(Entity, &EntityKind, &GridPos)>,
-    robots: Query<&BotState>,
+    robots: Query<&BotData>,
 ) {
     commands.insert_resource(DrawTimer(Timer::from_seconds(0.0, false)));
 
@@ -140,7 +141,7 @@ pub fn init_map_system(
                     mesh: meshes.add(mesh::robot_mesh()),
                     material: materials.add(Color::rgb(0.25, 0.12, 0.1).into()),
                     transform: transform
-                        .with_rotation(Quat::from_rotation_z(dir_to_radians(state.dir))),
+                        .with_rotation(Quat::from_rotation_z(dir_to_radians(state.start_dir))),
                     ..Default::default()
                 });
             }
