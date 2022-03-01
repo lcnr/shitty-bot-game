@@ -11,8 +11,6 @@ mod util;
 
 use bot::BotData;
 use bot::BotState;
-use bot::Instruction;
-use bot::Memory;
 use map::BoxData;
 use map::GridPos;
 
@@ -93,11 +91,13 @@ fn main() {
         .add_system_set(
             SystemSet::on_exit(GameState::Running)
                 .with_system(util::delete_local_entities)
-                .with_system(|mut commands: Commands, query: Query<(Entity, &BotData)>| {
-                    for (entity, data) in query.iter() {
-                        commands.entity(entity).remove::<BotState>();
-                    }
-                }),
+                .with_system(
+                    |mut commands: Commands, query: Query<Entity, With<BotData>>| {
+                        for entity in query.iter() {
+                            commands.entity(entity).remove::<BotState>();
+                        }
+                    },
+                ),
         )
         .add_system_set(SystemSet::on_update(GameState::Running))
         .add_startup_system(|mut commands: Commands| {

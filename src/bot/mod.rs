@@ -84,7 +84,7 @@ impl BotState {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 #[enum_repr::EnumRepr(type = "u8", implicit = true)]
 pub enum Instruction {
     Halt,
@@ -172,8 +172,6 @@ pub fn run_bot_interpreter(
 
     let instr =
         Instruction::from_repr(bot.instructions[state.current_instruction as usize]).unwrap();
-    state.advance_instruction();
-    // TODO: boxy, fix this <3, good night
     match instr {
         Instruction::Halt => state.halted = true,
         Instruction::Walk => {
@@ -244,6 +242,8 @@ pub fn run_bot_interpreter(
 
             if to_jump_or_not_to_jump {
                 state.current_instruction = target;
+            } else {
+                state.advance_instruction();
             }
         }
         Instruction::IfEdge | Instruction::IfNotEdge => {
@@ -258,6 +258,8 @@ pub fn run_bot_interpreter(
 
             if to_jump_or_not_to_jump {
                 state.current_instruction = target;
+            } else {
+                state.advance_instruction();
             }
         }
 
@@ -271,6 +273,8 @@ pub fn run_bot_interpreter(
 
             if cond {
                 state.current_instruction = target;
+            } else {
+                state.advance_instruction();
             }
         }
         Instruction::IfRobot | Instruction::IfNotRobot => {
@@ -283,6 +287,8 @@ pub fn run_bot_interpreter(
 
             if cond {
                 state.current_instruction = target;
+            } else {
+                state.advance_instruction();
             }
         }
     }
@@ -483,12 +489,19 @@ pub fn progress_world(
 
     bots.sort();
     for bot_id in bots {
-        let mut q = queries.q0();
-        let (_, _, pos, _) = q.get(bot_id).unwrap();
-        let entity_kind = entity_on_tile(*pos, queries.q1());
+        let q = queries.q0();
+        let (_, _, pos, state) = q.get(bot_id).unwrap();
+        let viewing_pos = match state.dir {
+            Direction::Up => GridPos(pos.0, pos.1 + 1),
+            Direction::Down => GridPos(pos.0, pos.1 - 1),
+            Direction::Left => GridPos(pos.0 - 1, pos.1),
+            Direction::Right => GridPos(pos.0 + 1, pos.1),
+        };
+        let entity_kind = entity_on_tile(viewing_pos, queries.q1());
         let mut q = queries.q0();
         let (_, bot, pos, mut state) = q.get_mut(bot_id).unwrap();
 
+        dbg!(&bot.instructions);
         run_bot_interpreter(bot, *pos, &mut *state, map, entity_kind);
         let changes = apply_bot_actions(bot_id, map, &mut queries);
         render_steps.data.push_back(changes);

@@ -120,7 +120,7 @@ impl Map {
     }
 }
 
-#[derive(Copy, Clone, Component)]
+#[derive(Debug, Copy, Clone, Component)]
 
 pub enum EntityKind {
     Robot,
