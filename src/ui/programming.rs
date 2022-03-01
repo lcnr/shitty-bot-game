@@ -5,7 +5,6 @@ use super::CornerButton;
 use super::MemUi;
 use crate::bot::edit::InstructionsEditor;
 use crate::bot::BotData;
-use crate::util::StateLocal;
 use crate::GameState;
 use bevy::prelude::*;
 
@@ -20,10 +19,10 @@ pub fn update(
     mut state: ResMut<State<GameState>>,
     input: Res<Input<KeyCode>>,
     mut mem: ResMut<InstructionsEditor>,
-    mut mem_ui: Res<MemUi>,
-    mut start_button: Res<StartButton>,
+    mem_ui: Res<MemUi>,
+    start_button: Res<StartButton>,
     mut color: Query<&mut UiColor>,
-    mut children: Query<&Children>,
+    children: Query<&Children>,
     mut text: Query<&mut Text>,
 ) {
     let mut clicked_entity = None;
@@ -170,21 +169,17 @@ pub fn update(
         }
     }
 
-    for (i, (data, &ui)) in iter::zip(&mem.user_names, &mem_ui.user_names).enumerate() {
+    for (data, &ui) in iter::zip(&mem.user_names, &mem_ui.user_names) {
         let text_entity = children.get(ui).unwrap()[0];
         text.get_mut(text_entity).unwrap().sections[0].value = data.clone();
     }
-    for (i, (data, &ui)) in iter::zip(&mem.user_values, &mem_ui.user_values).enumerate() {
+    for (data, &ui) in iter::zip(&mem.user_values, &mem_ui.user_values) {
         let text_entity = children.get(ui).unwrap()[0];
         text.get_mut(text_entity).unwrap().sections[0].value = data.clone();
     }
 }
 
-pub fn exit(
-    mut commands: Commands,
-    mut instructions: ResMut<InstructionsEditor>,
-    mut bot_data: Query<&mut BotData>,
-) {
+pub fn exit(mut instructions: ResMut<InstructionsEditor>, mut bot_data: Query<&mut BotData>) {
     // TODO: this is wrong, only one bot. move to update.
     instructions.on_selection_quit(None);
     for mut bot_data in bot_data.iter_mut() {

@@ -4,7 +4,6 @@ use std::ops::Deref;
 use std::ops::Mul;
 
 use crate::bot::BotData;
-use crate::bot::BotState;
 use crate::map::EntityKind;
 use crate::map::GridPos;
 use crate::map::Map;

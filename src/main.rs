@@ -42,10 +42,10 @@ fn main() {
         .add_system_set(SystemSet::on_enter(GameState::StartScreen).with_system(
             |mut state: ResMut<State<GameState>>| state.set(GameState::Programming).unwrap(),
         ))
+        .add_system_set(SystemSet::on_exit(GameState::StartScreen).with_system(ui::initialize_mem))
         .add_system_set(
             SystemSet::on_enter(GameState::Programming)
                 .with_system(ui::add_button::<StartButton>)
-                .with_system(ui::initialize_mem)
                 .with_system(
                     (|world: &mut World| {
                         let mut with_pos = Vec::new();
@@ -61,6 +61,7 @@ fn main() {
                     })
                     .exclusive_system(),
                 )
+                .with_system(ui::refresh_mem)
                 .with_system(draw::init_map_system),
         )
         .add_system_set(
@@ -70,14 +71,14 @@ fn main() {
             SystemSet::on_exit(GameState::Programming)
                 .with_system(ui::programming::exit.label("exit"))
                 .with_system(util::delete_local_entities.after("exit"))
-                .with_system(ui::remove_button::<StartButton>.after("exit"))
-                .with_system(ui::clear_mem.after("exit")),
+                .with_system(ui::remove_button::<StartButton>.after("exit")),
         )
         .add_system_set(
             SystemSet::on_enter(GameState::Running)
                 .with_system(draw::init_map_system)
+                .with_system(ui::refresh_mem)
+                .with_system(ui::running::init)
                 .with_system(ui::add_button::<StopButton>)
-                .with_system(ui::initialize_mem)
                 .with_system(
                     |mut commands: Commands, mut query: Query<(Entity, &BotData)>| {
                         for (entity, _) in query.iter_mut() {
@@ -92,13 +93,14 @@ fn main() {
             SystemSet::on_update(GameState::Running)
                 .with_system(bot::progress_world)
                 .with_system(draw::update_map_system)
-                .with_system(ui::running::update),
+                .with_system(ui::running::update1)
+                .with_system(ui::refresh_mem.label("refresh"))
+                .with_system(ui::running::update2.after("refresh")),
         )
         .add_system_set(
             SystemSet::on_exit(GameState::Running)
                 .with_system(util::delete_local_entities)
                 .with_system(ui::remove_button::<StopButton>)
-                .with_system(ui::clear_mem)
                 .with_system(
                     |mut commands: Commands, query: Query<Entity, With<BotData>>| {
                         for entity in query.iter() {
@@ -111,11 +113,7 @@ fn main() {
         .add_startup_system(|mut commands: Commands| {
             commands
                 .spawn()
-                .insert(bot::BotData::from_iter(
-                    map::GridPos(3, 3),
-                    Direction::Right,
-                    [],
-                ))
+                .insert(bot::BotData::new(map::GridPos(3, 3), Direction::Right))
                 .insert(bot::BotState::new(Direction::Right))
                 .insert(map::EntityKind::Robot);
             commands

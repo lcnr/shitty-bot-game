@@ -15,35 +15,10 @@ pub struct BotData {
     pub start_dir: Direction,
 }
 
-pub enum Memory {
-    Data(u8),
-    Instruction(Instruction),
-}
-
 impl BotData {
-    pub fn from_iter<I: IntoIterator<Item = Memory>>(
-        pos: GridPos,
-        dir: Direction,
-        iter: I,
-    ) -> Self {
-        let mut instructions = Vec::new();
-        for mem in iter {
-            match mem {
-                Memory::Data(val) => {
-                    assert!(val < 32);
-                    instructions.push(val);
-                }
-                Memory::Instruction(instr) => {
-                    instructions.push(instr.repr());
-                }
-            }
-        }
-
-        while instructions.len() < 32 {
-            instructions.push(Instruction::Halt.repr());
-        }
+    pub fn new(pos: GridPos, dir: Direction) -> Self {
         BotData {
-            instructions: instructions.try_into().expect("too long"),
+            instructions: [0; 32],
             start_position: pos,
             start_dir: dir,
         }
@@ -60,6 +35,7 @@ pub enum Step {
 #[derive(Debug, Component)]
 pub struct BotState {
     halted: bool,
+    pub prev_instruction: u8,
     current_instruction: u8,
     steps: Vec<Step>,
     pub dir: Direction,
@@ -69,6 +45,7 @@ impl BotState {
     pub fn new(dir: Direction) -> Self {
         BotState {
             halted: false,
+            prev_instruction: 0,
             current_instruction: 0,
             steps: Vec::new(),
             dir,
@@ -143,6 +120,26 @@ impl Display for Instruction {
 }
 
 impl Instruction {
+    pub fn is_wide(self) -> bool {
+        match self {
+            Instruction::Halt
+            | Instruction::TurnAround
+            | Instruction::TurnLeft
+            | Instruction::TurnRight => false,
+            Instruction::Walk
+            | Instruction::Wait
+            | Instruction::Goto
+            | Instruction::IfBox
+            | Instruction::IfWall
+            | Instruction::IfEdge
+            | Instruction::IfRobot
+            | Instruction::IfNotBox
+            | Instruction::IfNotWall
+            | Instruction::IfNotEdge
+            | Instruction::IfNotRobot => true,
+        }
+    }
+
     pub fn is_positive(self) -> bool {
         match self {
             Instruction::Halt
@@ -182,6 +179,7 @@ pub fn run_bot_interpreter(
         Direction::Right => GridPos(pos.0 + 1, pos.1),
     };
 
+    state.prev_instruction = state.current_instruction;
     let instr = if let Some(instr) = state.read_instruction(bot) {
         instr
     } else {

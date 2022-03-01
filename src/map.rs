@@ -110,10 +110,6 @@ impl Map {
         }
     }
 
-    pub fn dummy_new() -> Self {
-        Map::from_str(include_str!("../example.map"))
-    }
-
     pub fn tile(&self, GridPos(x, y): GridPos) -> Place {
         assert!(x < self.width && y < self.height);
         self.layout[y * self.width + x]

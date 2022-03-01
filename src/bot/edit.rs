@@ -1,6 +1,5 @@
 use crate::bot::Instruction;
 use std::array;
-use std::num::ParseIntError;
 pub struct InstructionsEditor {
     pub user_names: [String; 32],
     pub user_values: [String; 32],

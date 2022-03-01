@@ -1,3 +1,7 @@
+use std::iter;
+
+use crate::bot::BotData;
+use crate::bot::Instruction;
 use crate::util::StateLocal;
 use bevy::prelude::*;
 
@@ -45,7 +49,6 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
                         color: VALID_MEM.into(),
                         ..Default::default()
                     })
-                    .insert(StateLocal)
                     .with_children(|parent| {
                         parent.spawn_bundle(TextBundle {
                             text: Text::with_section(
@@ -82,7 +85,6 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
                         color: VALID_MEM.into(),
                         ..Default::default()
                     })
-                    .insert(StateLocal)
                     .with_children(|parent| {
                         parent.spawn_bundle(TextBundle {
                             text: Text::with_section(
@@ -108,8 +110,34 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
     })
 }
 
-pub fn clear_mem(mut commands: Commands) {
-    commands.remove_resource::<MemUi>();
+pub fn refresh_mem(
+    mem_ui: Res<MemUi>,
+    mem: Query<&BotData>,
+    mut color: Query<&mut UiColor>,
+    children: Query<&Children>,
+    mut text: Query<&mut Text>,
+) {
+    for mem in mem.iter() {
+        let iter = iter::zip(
+            &mem.instructions,
+            iter::zip(&mem_ui.user_names, &mem_ui.user_values),
+        );
+        for (&instr, (&name, &value)) in iter {
+            {
+                let mut color = color.get_mut(name).unwrap();
+                *color = VALID_MEM.into();
+                let text_entity = children.get(name).unwrap()[0];
+                text.get_mut(text_entity).unwrap().sections[0].value =
+                    Instruction::from_repr(instr).map_or(String::new(), |i| i.to_string());
+            }
+            {
+                let mut color = color.get_mut(value).unwrap();
+                *color = VALID_MEM.into();
+                let text_entity = children.get(value).unwrap()[0];
+                text.get_mut(text_entity).unwrap().sections[0].value = instr.to_string();
+            }
+        }
+    }
 }
 
 pub trait CornerButton: Sync + Send + 'static {
