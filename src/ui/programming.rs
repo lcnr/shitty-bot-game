@@ -1,150 +1,18 @@
 use std::iter;
 
+use super::buttons::*;
+use super::CornerButton;
+use super::MemUi;
 use crate::bot::edit::InstructionsEditor;
 use crate::bot::BotData;
 use crate::util::StateLocal;
 use crate::GameState;
 use bevy::prelude::*;
 
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const VALID_MEM: Color = Color::rgb(0.1, 0.1, 0.1);
-const INVALID_MEM: Color = Color::rgb(0.8, 0.3, 0.3);
-const SELECTED_MEM: Color = Color::rgb(0.1, 0.5, 0.1);
-
-pub struct MemUi {
-    user_names: [Entity; 32],
-    user_values: [Entity; 32],
-}
-
 pub struct StartButton(Entity);
-
-pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(UiCameraBundle::default());
-    let start_button = commands
-        .spawn_bundle(ButtonBundle {
-            style: Style {
-                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                position_type: PositionType::Absolute,
-                margin: Rect::all(Val::Auto),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                position: Rect {
-                    left: Val::Auto,
-                    right: Val::Percent(1.0),
-                    top: Val::Percent(1.0),
-                    bottom: Val::Auto,
-                },
-                ..Default::default()
-            },
-            color: NORMAL_BUTTON.into(),
-            ..Default::default()
-        })
-        .insert(StateLocal)
-        .with_children(|parent| {
-            parent.spawn_bundle(TextBundle {
-                text: Text::with_section(
-                    "Start",
-                    TextStyle {
-                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 40.0,
-                        color: Color::rgb(0.9, 0.9, 0.9),
-                    },
-                    Default::default(),
-                ),
-                ..Default::default()
-            });
-        })
-        .id();
-
-    commands.insert_resource(StartButton(start_button));
-
-    // mk ui
-    let mut user_names = Vec::new();
-    let mut user_values = Vec::new();
-    for y in 0..32 / 4 {
-        for x in 0..4 {
-            user_names.push(
-                commands
-                    .spawn_bundle(ButtonBundle {
-                        style: Style {
-                            size: Size::new(Val::Px(120.0), Val::Px(30.0)),
-                            position_type: PositionType::Absolute,
-                            margin: Rect::all(Val::Auto),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            position: Rect {
-                                left: Val::Auto,
-                                right: Val::Percent(32.0 - x as f32 * 10.0),
-                                top: Val::Percent(15.0 + y as f32 * 10.0),
-                                bottom: Val::Auto,
-                            },
-                            ..Default::default()
-                        },
-                        color: VALID_MEM.into(),
-                        ..Default::default()
-                    })
-                    .insert(StateLocal)
-                    .with_children(|parent| {
-                        parent.spawn_bundle(TextBundle {
-                            text: Text::with_section(
-                                "",
-                                TextStyle {
-                                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                    font_size: 25.0,
-                                    color: Color::rgb(0.9, 0.9, 0.9),
-                                },
-                                Default::default(),
-                            ),
-                            ..Default::default()
-                        });
-                    })
-                    .id(),
-            );
-            user_values.push(
-                commands
-                    .spawn_bundle(ButtonBundle {
-                        style: Style {
-                            size: Size::new(Val::Px(120.0), Val::Px(30.0)),
-                            position_type: PositionType::Absolute,
-                            margin: Rect::all(Val::Auto),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            position: Rect {
-                                left: Val::Auto,
-                                right: Val::Percent(32.0 - x as f32 * 10.0),
-                                top: Val::Percent(19.0 + y as f32 * 10.0),
-                                bottom: Val::Auto,
-                            },
-                            ..Default::default()
-                        },
-                        color: VALID_MEM.into(),
-                        ..Default::default()
-                    })
-                    .insert(StateLocal)
-                    .with_children(|parent| {
-                        parent.spawn_bundle(TextBundle {
-                            text: Text::with_section(
-                                "",
-                                TextStyle {
-                                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                    font_size: 25.0,
-                                    color: Color::rgb(0.9, 0.9, 0.9),
-                                },
-                                Default::default(),
-                            ),
-                            ..Default::default()
-                        });
-                    })
-                    .id(),
-            );
-        }
-    }
-
-    commands.insert_resource(MemUi {
-        user_names: user_names.try_into().unwrap(),
-        user_values: user_values.try_into().unwrap(),
-    })
+impl CornerButton for StartButton {
+    const MK: fn(Entity) -> Self = StartButton;
+    const MSG: &'static str = "Start";
 }
 
 pub fn update(
@@ -183,16 +51,12 @@ pub fn update(
 
     let mut update_cell = None;
     for (i, &ui) in mem_ui.user_names.iter().enumerate() {
-        let mut color = color.get_mut(ui).unwrap();
         if Some(ui) == clicked_entity {
-            *color = SELECTED_MEM.into();
             update_cell = Some(Some((true, i)));
         }
     }
     for (i, &ui) in mem_ui.user_values.iter().enumerate() {
-        let mut color = color.get_mut(ui).unwrap();
         if Some(ui) == clicked_entity {
-            *color = SELECTED_MEM.into();
             update_cell = Some(Some((false, i)));
         }
     }
@@ -201,6 +65,10 @@ pub fn update(
         let cell = if let Some(cell) = mem.active_cell_data() {
             cell
         } else {
+            match input {
+                KeyCode::Tab => update_cell = Some(Some((true, 0))),
+                _ => {}
+            }
             break;
         };
 
@@ -232,20 +100,32 @@ pub fn update(
             KeyCode::X => 'x',
             KeyCode::Y => 'y',
             KeyCode::Z => 'z',
-            KeyCode::Key0 => '0',
-            KeyCode::Key1 => '1',
-            KeyCode::Key2 => '2',
-            KeyCode::Key3 => '3',
-            KeyCode::Key4 => '4',
-            KeyCode::Key5 => '5',
-            KeyCode::Key6 => '6',
-            KeyCode::Key7 => '7',
-            KeyCode::Key8 => '8',
-            KeyCode::Key9 => '9',
+            KeyCode::Key0 | KeyCode::Numpad0 => '0',
+            KeyCode::Key1 | KeyCode::Numpad1 => '1',
+            KeyCode::Key2 | KeyCode::Numpad2 => '2',
+            KeyCode::Key3 | KeyCode::Numpad3 => '3',
+            KeyCode::Key4 | KeyCode::Numpad4 => '4',
+            KeyCode::Key5 | KeyCode::Numpad5 => '5',
+            KeyCode::Key6 | KeyCode::Numpad6 => '6',
+            KeyCode::Key7 | KeyCode::Numpad7 => '7',
+            KeyCode::Key8 | KeyCode::Numpad8 => '8',
+            KeyCode::Key9 | KeyCode::Numpad9 => '9',
             KeyCode::Space => ' ',
             KeyCode::Back => {
                 cell.pop();
                 continue;
+            }
+            KeyCode::Tab => {
+                let cell_empty = cell.is_empty();
+                if let Some((b, c)) = mem.active_cell {
+                    update_cell = Some(Some(match (b, cell_empty) {
+                        (true, true) => (false, c),
+                        _ => (true, c + 1 % 32),
+                    }));
+                    break;
+                } else {
+                    continue;
+                }
             }
             KeyCode::Return => {
                 update_cell = Some(None);
@@ -260,6 +140,17 @@ pub fn update(
     }
 
     if let Some(value) = update_cell {
+        if let Some((is_name, i)) = value {
+            let id = if is_name {
+                mem_ui.user_names[i]
+            } else {
+                mem_ui.user_values[i]
+            };
+
+            let mut color = color.get_mut(id).unwrap();
+            *color = SELECTED_MEM.into();
+        }
+
         if let Some((was_name, i)) = mem.on_selection_quit(value) {
             let id = if was_name {
                 mem_ui.user_names[i]
@@ -291,14 +182,12 @@ pub fn update(
 
 pub fn exit(
     mut commands: Commands,
-    mut instructions: Res<InstructionsEditor>,
+    mut instructions: ResMut<InstructionsEditor>,
     mut bot_data: Query<&mut BotData>,
 ) {
     // TODO: this is wrong, only one bot. move to update.
+    instructions.on_selection_quit(None);
     for mut bot_data in bot_data.iter_mut() {
         bot_data.instructions = instructions.instructions;
     }
-
-    commands.remove_resource::<MemUi>();
-    commands.remove_resource::<StartButton>();
 }

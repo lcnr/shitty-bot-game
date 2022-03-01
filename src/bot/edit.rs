@@ -5,7 +5,7 @@ pub struct InstructionsEditor {
     pub user_names: [String; 32],
     pub user_values: [String; 32],
     pub instructions: [u8; 32],
-    active_cell: Option<(bool, usize)>,
+    pub active_cell: Option<(bool, usize)>,
     pub error: Option<String>,
 }
 

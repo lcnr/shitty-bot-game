@@ -1,46 +1,13 @@
+use super::buttons::*;
+use super::CornerButton;
 use crate::util::StateLocal;
 use crate::GameState;
 use bevy::prelude::*;
 
-const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
-const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-
-pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(UiCameraBundle::default());
-    commands
-        .spawn_bundle(ButtonBundle {
-            style: Style {
-                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                position_type: PositionType::Absolute,
-                margin: Rect::all(Val::Auto),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                position: Rect {
-                    left: Val::Auto,
-                    right: Val::Percent(0.95),
-                    top: Val::Percent(0.95),
-                    bottom: Val::Auto,
-                },
-                ..Default::default()
-            },
-            color: NORMAL_BUTTON.into(),
-            ..Default::default()
-        })
-        .insert(StateLocal)
-        .with_children(|parent| {
-            parent.spawn_bundle(TextBundle {
-                text: Text::with_section(
-                    "Stop",
-                    TextStyle {
-                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 40.0,
-                        color: Color::rgb(0.9, 0.9, 0.9),
-                    },
-                    Default::default(),
-                ),
-                ..Default::default()
-            });
-        });
+pub struct StopButton(Entity);
+impl CornerButton for StopButton {
+    const MK: fn(Entity) -> Self = StopButton;
+    const MSG: &'static str = "Stop";
 }
 
 pub fn update(
@@ -49,8 +16,9 @@ pub fn update(
         (Changed<Interaction>, With<Button>),
     >,
     mut state: ResMut<State<GameState>>,
+    stop: Res<StopButton>,
 ) {
-    for (interaction, mut color, children) in interaction_query.iter_mut() {
+    if let Ok((interaction, mut color, children)) = interaction_query.get_mut(stop.0) {
         match *interaction {
             Interaction::Clicked => {
                 state.set(GameState::Programming).unwrap();
