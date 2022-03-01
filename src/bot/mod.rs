@@ -82,6 +82,18 @@ impl BotState {
             self.current_instruction += 1;
         }
     }
+
+    fn read_instruction(&mut self, data: &BotData) -> Option<Instruction> {
+        let instr = Instruction::from_repr(data.instructions[self.current_instruction as usize]);
+        self.advance_instruction();
+        instr
+    }
+
+    fn read_value(&mut self, data: &BotData) -> u8 {
+        let value = data.instructions[self.current_instruction as usize];
+        self.advance_instruction();
+        value
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -170,20 +182,20 @@ pub fn run_bot_interpreter(
         Direction::Right => GridPos(pos.0 + 1, pos.1),
     };
 
-    let instr =
-        Instruction::from_repr(bot.instructions[state.current_instruction as usize]).unwrap();
+    let instr = if let Some(instr) = state.read_instruction(bot) {
+        instr
+    } else {
+        state.halted = true;
+        return;
+    };
+
     match instr {
         Instruction::Halt => state.halted = true,
         Instruction::Walk => {
-            let arg = {
-                state.advance_instruction();
-                bot.instructions[state.current_instruction as usize]
-            };
+            let arg = state.read_value(bot);
             for _ in 0..arg {
                 state.steps.push(Step::Walk);
             }
-            println!("{:?}", state.steps);
-            state.advance_instruction();
         }
         Instruction::TurnAround => {
             let new_dir = match state.dir {
@@ -193,7 +205,6 @@ pub fn run_bot_interpreter(
                 Direction::Right => Direction::Right,
             };
             state.steps.push(Step::UpdateDir(new_dir));
-            state.advance_instruction();
         }
         Instruction::TurnLeft => {
             let new_dir = match state.dir {
@@ -203,7 +214,6 @@ pub fn run_bot_interpreter(
                 Direction::Right => Direction::Up,
             };
             state.steps.push(Step::UpdateDir(new_dir));
-            state.advance_instruction();
         }
         Instruction::TurnRight => {
             let new_dir = match state.dir {
@@ -213,37 +223,24 @@ pub fn run_bot_interpreter(
                 Direction::Right => Direction::Down,
             };
             state.steps.push(Step::UpdateDir(new_dir));
-            state.advance_instruction();
         }
         Instruction::Wait => {
-            let arg = {
-                state.advance_instruction();
-                bot.instructions[state.current_instruction as usize]
-            };
+            let arg = state.read_value(bot);
             for _ in 0..arg {
                 state.steps.push(Step::Wait);
             }
-            state.advance_instruction();
         }
         Instruction::Goto => {
-            let arg = {
-                state.advance_instruction();
-                bot.instructions[state.current_instruction as usize]
-            };
+            let arg = state.read_value(bot);
             state.current_instruction = arg;
         }
         Instruction::IfWall | Instruction::IfNotWall => {
             let to_jump_or_not_to_jump =
                 instr.is_positive() == matches!(map.tile(facing_grid_pos), Place::Wall);
-            let target = {
-                state.advance_instruction();
-                bot.instructions[state.current_instruction as usize]
-            };
+            let target = state.read_value(bot);
 
             if to_jump_or_not_to_jump {
                 state.current_instruction = target;
-            } else {
-                state.advance_instruction();
             }
         }
         Instruction::IfEdge | Instruction::IfNotEdge => {
@@ -251,44 +248,29 @@ pub fn run_bot_interpreter(
                 == (matches!(map.tile(pos), Place::UpperFloor)
                     && matches!(map.tile(facing_grid_pos), Place::LowerFloor))
                 || matches!(map.tile(pos), Place::Void);
-            let target = {
-                state.advance_instruction();
-                bot.instructions[state.current_instruction as usize]
-            };
+            let target = state.read_value(bot);
 
             if to_jump_or_not_to_jump {
                 state.current_instruction = target;
-            } else {
-                state.advance_instruction();
             }
         }
 
         Instruction::IfBox | Instruction::IfNotBox => {
             let cond =
                 instr.is_positive() == matches!(entity_on_tile_facing, Some(EntityKind::Box));
-            let target = {
-                state.advance_instruction();
-                bot.instructions[state.current_instruction as usize]
-            };
+            let target = state.read_value(bot);
 
             if cond {
                 state.current_instruction = target;
-            } else {
-                state.advance_instruction();
             }
         }
         Instruction::IfRobot | Instruction::IfNotRobot => {
             let cond =
                 instr.is_positive() == matches!(entity_on_tile_facing, Some(EntityKind::Robot));
-            let target = {
-                state.advance_instruction();
-                bot.instructions[state.current_instruction as usize]
-            };
+            let target = state.read_value(bot);
 
             if cond {
                 state.current_instruction = target;
-            } else {
-                state.advance_instruction();
             }
         }
     }
