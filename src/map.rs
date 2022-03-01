@@ -12,7 +12,7 @@ pub enum Place {
     Exit,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LevelList {
     pub levels: Vec<Level>,
 }
@@ -36,7 +36,7 @@ pub struct LevelSerde {
     pub bots: Vec<(usize, usize)>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Level {
     pub map: Map,
     pub boxes: Vec<GridPos>,

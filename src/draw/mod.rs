@@ -7,6 +7,7 @@ use crate::bot::BotData;
 use crate::bot::BotState;
 use crate::map::EntityKind;
 use crate::map::GridPos;
+use crate::map::Level;
 use crate::map::Map;
 use crate::map::Place;
 use crate::Direction;
@@ -37,11 +38,14 @@ impl DrawUpdates {
     }
 }
 
+#[derive(Component, Debug, Clone, Copy)]
+pub struct MapTile;
+
 pub fn init_map_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    map: Res<Map>,
+    level: Res<Level>,
     entities: Query<(Entity, &EntityKind, &GridPos)>,
     robots: Query<&BotData>,
 ) {
@@ -51,13 +55,13 @@ pub fn init_map_system(
         transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
         ..Default::default()
     });
-    let viewing_pos = Vec3::new(map.width as f32, map.height as f32, 15.0);
+    let viewing_pos = Vec3::new(level.map.width as f32, level.map.height as f32, 15.0);
     commands.spawn_bundle(PerspectiveCameraBundle {
         transform: Transform::from_translation(viewing_pos)
             .looking_at(Vec3::ZERO, Vec3::Z)
             .with_translation(
-                viewing_pos - (Vec3::X * map.width as f32 / 3.0)
-                    + (Vec3::Y * map.height as f32 / 3.0),
+                viewing_pos - (Vec3::X * level.map.width as f32 / 3.0)
+                    + (Vec3::Y * level.map.height as f32 / 3.0),
             ),
         ..Default::default()
     });
@@ -71,73 +75,83 @@ pub fn init_map_system(
         max_z: 1.0,
     };
 
-    for x in 0..map.width {
-        for y in 0..map.height {
+    for x in 0..level.map.width {
+        for y in 0..level.map.height {
             let transform = Transform::from_xyz(
-                x as f32 - map.width as f32 / 2.0,
-                y as f32 - map.height as f32 / 2.0,
+                x as f32 - level.map.width as f32 / 2.0,
+                y as f32 - level.map.height as f32 / 2.0,
                 0.0,
             );
-            match map.tile(GridPos(x, y)) {
+            match level.map.tile(GridPos(x, y)) {
                 Place::UpperFloor => {
-                    commands.spawn_bundle(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Box {
-                            max_z: UPPER_FLOOR,
-                            ..box_xy
-                        })),
-                        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-                        transform,
-                        ..Default::default()
-                    });
+                    commands
+                        .spawn_bundle(PbrBundle {
+                            mesh: meshes.add(Mesh::from(shape::Box {
+                                max_z: UPPER_FLOOR,
+                                ..box_xy
+                            })),
+                            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+                            transform,
+                            ..Default::default()
+                        })
+                        .insert(MapTile);
                 }
                 Place::LowerFloor => {
-                    commands.spawn_bundle(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Box {
-                            max_z: LOWER_FLOOR,
-                            ..box_xy
-                        })),
-                        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-                        transform,
-                        ..Default::default()
-                    });
+                    commands
+                        .spawn_bundle(PbrBundle {
+                            mesh: meshes.add(Mesh::from(shape::Box {
+                                max_z: LOWER_FLOOR,
+                                ..box_xy
+                            })),
+                            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+                            transform,
+                            ..Default::default()
+                        })
+                        .insert(MapTile);
                 }
                 Place::Ramp(dir) => {
-                    commands.spawn_bundle(PbrBundle {
-                        mesh: meshes.add(mesh::slope_mesh(dir)),
-                        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-                        transform,
-                        ..Default::default()
-                    });
+                    commands
+                        .spawn_bundle(PbrBundle {
+                            mesh: meshes.add(mesh::slope_mesh(dir)),
+                            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+                            transform,
+                            ..Default::default()
+                        })
+                        .insert(MapTile);
                 }
                 Place::Void => {}
                 Place::Wall => {
-                    commands.spawn_bundle(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Box {
-                            max_z: 0.9,
-                            ..box_xy
-                        })),
-                        material: materials.add(Color::rgb(0.7, 0.9, 0.7).into()),
-                        transform,
-                        ..Default::default()
-                    });
+                    commands
+                        .spawn_bundle(PbrBundle {
+                            mesh: meshes.add(Mesh::from(shape::Box {
+                                max_z: 0.9,
+                                ..box_xy
+                            })),
+                            material: materials.add(Color::rgb(0.7, 0.9, 0.7).into()),
+                            transform,
+                            ..Default::default()
+                        })
+                        .insert(MapTile);
                 }
                 Place::Exit => {
-                    commands.spawn_bundle(PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Box {
-                            max_z: 1.0,
-                            ..box_xy
-                        })),
-                        material: materials.add(Color::rgb(0.1, 0.9, 0.1).into()),
-                        transform,
-                        ..Default::default()
-                    });
+                    commands
+                        .spawn_bundle(PbrBundle {
+                            mesh: meshes.add(Mesh::from(shape::Box {
+                                max_z: 1.0,
+                                ..box_xy
+                            })),
+                            material: materials.add(Color::rgb(0.1, 0.9, 0.1).into()),
+                            transform,
+                            ..Default::default()
+                        })
+                        .insert(MapTile);
                 }
             }
         }
     }
 
     for (entity, kind, &position) in entities.iter() {
-        let transform = Transform::from_translation(pos_to_world(&map, position));
+        let transform = Transform::from_translation(pos_to_world(&level.map, position));
 
         match kind {
             EntityKind::Robot => {
@@ -169,7 +183,7 @@ pub fn init_map_system(
     }
 }
 
-pub struct DrawTimer(Timer);
+pub struct DrawTimer(pub Timer);
 impl Deref for DrawTimer {
     type Target = Timer;
     fn deref(&self) -> &Timer {
@@ -181,7 +195,7 @@ pub fn update_map_system(
     mut events: ResMut<DrawUpdates>,
     time: Res<Time>,
     mut timer: ResMut<DrawTimer>,
-    map: Res<Map>,
+    level: Res<Level>,
     mut transforms: Query<&mut Transform>,
 ) {
     timer.0.tick(time.delta());
@@ -201,8 +215,8 @@ pub fn update_map_system(
             Step::Idle => {}
             Step::Move(from, to) => {
                 let mut transform = transforms.get_mut(entity).expect("sus step");
-                let old_pos = pos_to_world(&map, from);
-                let new_pos = pos_to_world(&map, to);
+                let old_pos = pos_to_world(&level.map, from);
+                let new_pos = pos_to_world(&level.map, to);
                 let position = interpolate(timer.percent(), old_pos, new_pos);
                 *transform = transform.with_translation(position);
             }
