@@ -5,8 +5,8 @@ use super::CornerButton;
 use super::MemUi;
 use crate::bot::edit::InstructionsEditor;
 use crate::bot::BotData;
-use crate::GameState;
 use crate::util::StateLocal;
+use crate::GameState;
 use bevy::prelude::*;
 
 pub struct StartButton(Entity);
@@ -199,11 +199,13 @@ pub fn update(
                 let mut c = color.get_mut(mem_ui.user_values[i]).unwrap();
                 *c = VALID_MEM.into();
             } else {
-                let mut color = color.get_mut(if was_name {
-                    mem_ui.user_names[i]
-                } else {
-                    mem_ui.user_values[i]
-                }).unwrap();
+                let mut color = color
+                    .get_mut(if was_name {
+                        mem_ui.user_names[i]
+                    } else {
+                        mem_ui.user_values[i]
+                    })
+                    .unwrap();
                 *color = INVALID_MEM.into();
             }
 
@@ -229,7 +231,6 @@ pub fn update(
             let mut color = color.get_mut(id).unwrap();
             *color = SELECTED_MEM.into();
         }
-        
 
         if let Some(s) = mem.active_cell_data() {
             s.clear();
@@ -246,7 +247,11 @@ pub fn update(
     }
 }
 
-pub fn exit(mut commands: Commands, mut instructions: ResMut<InstructionsEditor>, mut bot_data: Query<&mut BotData>) {
+pub fn exit(
+    mut commands: Commands,
+    mut instructions: ResMut<InstructionsEditor>,
+    mut bot_data: Query<&mut BotData>,
+) {
     commands.remove_resource::<ErrorText>();
     // TODO: this is wrong, only one bot. move to update.
     instructions.on_selection_quit(None);

@@ -28,6 +28,32 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut user_names = Vec::new();
     let mut user_values = Vec::new();
     for y in 0..32 / 4 {
+        commands.spawn_bundle(TextBundle {
+            style: Style {
+                size: Size::new(Val::Auto, Val::Auto),
+                position_type: PositionType::Absolute,
+                margin: Rect::all(Val::Auto),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                position: Rect {
+                    left: Val::Auto,
+                    right: Val::Percent(42.0),
+                    top: Val::Percent(15.0 + y as f32 * 9.0),
+                    bottom: Val::Auto,
+                },
+                ..Default::default()
+            },
+            text: Text::with_section(
+                &format!("{}", y * 4),
+                TextStyle {
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 25.0,
+                    color: Color::rgb(0.9, 0.9, 0.9),
+                },
+                Default::default(),
+            ),
+            ..Default::default()
+        });
         for x in 0..4 {
             user_names.push(
                 commands
