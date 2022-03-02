@@ -11,8 +11,6 @@ mod util;
 
 use bot::BotData;
 use bot::BotState;
-use map::BoxData;
-use map::GridPos;
 use ui::programming::StartButton;
 use ui::running::StopButton;
 
@@ -21,6 +19,7 @@ pub enum GameState {
     StartScreen,
     Programming,
     Running,
+    ChangeLevel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,36 +35,38 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_state(GameState::StartScreen)
-        .insert_resource(levels.levels[0].map.clone())
+        .insert_resource(levels.clone())
+        .insert_resource(levels.levels[0].clone())
         .insert_resource(bot::edit::InstructionsEditor::new())
         .insert_resource(draw::DrawUpdates::empty())
         .add_system_set(SystemSet::on_enter(GameState::StartScreen).with_system(
-            |mut state: ResMut<State<GameState>>| state.set(GameState::Programming).unwrap(),
+            |mut state: ResMut<State<GameState>>| {
+                state.set(GameState::ChangeLevel).unwrap();
+            },
         ))
+        .add_system_set(
+            SystemSet::on_enter(GameState::ChangeLevel).with_system(util::spawn_map_entities),
+        )
         .add_system_set(SystemSet::on_exit(GameState::StartScreen).with_system(ui::initialize_mem))
         .add_system_set(
             SystemSet::on_enter(GameState::Programming)
                 .with_system(ui::add_button::<StartButton>)
-                .with_system(
-                    (|world: &mut World| {
-                        let mut with_pos = Vec::new();
-                        for (entity, data) in world.query::<(Entity, &BotData)>().iter(world) {
-                            with_pos.push((entity, data.start_position));
-                        }
-                        for (entity, data) in world.query::<(Entity, &BoxData)>().iter(world) {
-                            with_pos.push((entity, data.start_position));
-                        }
-                        for (entity, data) in with_pos {
-                            world.entity_mut(entity).insert(data);
-                        }
-                    })
-                    .exclusive_system(),
-                )
+                .with_system(util::reset_bot_and_box_positions.exclusive_system())
                 .with_system(ui::refresh_mem)
                 .with_system(draw::init_map_system),
         )
         .add_system_set(
-            SystemSet::on_update(GameState::Programming).with_system(ui::programming::update),
+            SystemSet::on_update(GameState::Programming)
+                .with_system(ui::programming::update)
+                .with_system(
+                    |mut input: ResMut<Input<KeyCode>>,
+                     mut game_state: ResMut<State<GameState>>| {
+                        if input.pressed(KeyCode::Escape) {
+                            input.release(KeyCode::Escape);
+                            game_state.set(GameState::ChangeLevel).unwrap();
+                        }
+                    },
+                ),
         )
         .add_system_set(
             SystemSet::on_exit(GameState::Programming)
@@ -75,13 +76,14 @@ fn main() {
         )
         .add_system_set(
             SystemSet::on_enter(GameState::Running)
+                .with_system(draw::init_timer.exclusive_system())
                 .with_system(draw::init_map_system)
                 .with_system(ui::refresh_mem)
                 .with_system(ui::running::init)
                 .with_system(ui::add_button::<StopButton>)
                 .with_system(
-                    |mut commands: Commands, mut query: Query<(Entity, &BotData)>| {
-                        for (entity, _) in query.iter_mut() {
+                    |mut commands: Commands, mut query: Query<Entity, With<BotData>>| {
+                        for entity in query.iter_mut() {
                             commands
                                 .entity(entity)
                                 .insert(BotState::new(Direction::Right));
@@ -110,18 +112,5 @@ fn main() {
                 ),
         )
         .add_system_set(SystemSet::on_update(GameState::Running))
-        .add_startup_system(|mut commands: Commands| {
-            commands
-                .spawn()
-                .insert(bot::BotData::new(map::GridPos(3, 3), Direction::Right))
-                .insert(bot::BotState::new(Direction::Right))
-                .insert(map::EntityKind::Robot);
-            commands
-                .spawn()
-                .insert(map::BoxData {
-                    start_position: GridPos(4, 3),
-                })
-                .insert(map::EntityKind::Box);
-        })
         .run();
 }

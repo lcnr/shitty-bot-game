@@ -365,7 +365,8 @@ fn apply_bot_actions(
                         }
                         Place::Wall => false,
                     },
-                    Place::Void | Place::Exit | Place::Wall => unreachable!(),
+                    Place::Void => matches!(tar_tile, Place::Void),
+                    Place::Exit | Place::Wall => unreachable!(),
                 };
 
                 let mut steps = vec![];
@@ -406,7 +407,6 @@ fn apply_bot_actions(
                 map,
                 queries.q1(),
             );
-            dbg!(&steps);
 
             if let [] = &*steps {
                 render_steps.push((bot_id, draw::Step::MoveFail))
@@ -447,7 +447,7 @@ pub fn entity_on_tile(
 
 pub fn progress_world(
     mut render_steps: ResMut<DrawUpdates>,
-    map: Res<Map>,
+    level: Res<Level>,
     mut queries: QuerySet<(
         QueryState<(Entity, &BotData, &mut GridPos, &mut BotState)>,
         QueryState<(Entity, &EntityKind, &GridPos)>,
@@ -459,8 +459,7 @@ pub fn progress_world(
         return;
     }
 
-    // `Res<T>: Copy` cannot be proven ???
-    let map = &*map;
+    let map = &level.map;
     let mut bots = queries
         .q0()
         .iter()
@@ -481,7 +480,6 @@ pub fn progress_world(
         let mut q = queries.q0();
         let (_, bot, pos, mut state) = q.get_mut(bot_id).unwrap();
 
-        dbg!(&bot.instructions);
         run_bot_interpreter(bot, *pos, &mut *state, map, entity_kind);
         let changes = apply_bot_actions(bot_id, map, &mut queries);
         render_steps.data.push_back(changes);
