@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    bot::{self, edit::InstructionsEditor, BotData},
+    bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited},
     draw::MapTile,
     map::{self, BoxData, EntityKind, Level},
     Direction, GameState,
@@ -52,7 +52,7 @@ pub fn spawn_map_entities(
     state.set(GameState::Programming).unwrap();
 }
 
-pub fn reset_bot_and_box_positions(world: &mut World) {
+pub fn reset_bot_and_box_state(world: &mut World) {
     let mut with_pos = Vec::new();
     for (entity, data) in world.query::<(Entity, &BotData)>().iter(world) {
         with_pos.push((entity, data.start_position));
@@ -61,6 +61,6 @@ pub fn reset_bot_and_box_positions(world: &mut World) {
         with_pos.push((entity, data.start_position));
     }
     for (entity, data) in with_pos {
-        world.entity_mut(entity).insert(data);
+        world.entity_mut(entity).insert(data).remove::<VoidedOrExited>();
     }
 }
