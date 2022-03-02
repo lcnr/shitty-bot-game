@@ -222,10 +222,10 @@ pub fn update(
             let text_entity = children.get(error_text.0).unwrap()[0];
             let text = &mut text.get_mut(text_entity).unwrap().sections[0].value;
             if let Some(ref err) = mem.error {
-                *error_color = NO_ERROR.into();
+                *error_color = ERROR.into();
                 *text = err.clone();
             } else {
-                *error_color = ERROR.into();
+                *error_color = NO_ERROR.into();
                 *text = String::new();
             }
         }
