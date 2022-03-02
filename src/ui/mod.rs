@@ -41,7 +41,7 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
                             position: Rect {
                                 left: Val::Auto,
                                 right: Val::Percent(32.0 - x as f32 * 10.0),
-                                top: Val::Percent(15.0 + y as f32 * 10.0),
+                                top: Val::Percent(13.0 + y as f32 * 9.0),
                                 bottom: Val::Auto,
                             },
                             ..Default::default()
@@ -77,7 +77,7 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
                             position: Rect {
                                 left: Val::Auto,
                                 right: Val::Percent(32.0 - x as f32 * 10.0),
-                                top: Val::Percent(19.0 + y as f32 * 10.0),
+                                top: Val::Percent(17.0 + y as f32 * 9.0),
                                 bottom: Val::Auto,
                             },
                             ..Default::default()

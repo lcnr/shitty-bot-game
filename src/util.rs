@@ -61,6 +61,9 @@ pub fn reset_bot_and_box_state(world: &mut World) {
         with_pos.push((entity, data.start_position));
     }
     for (entity, data) in with_pos {
-        world.entity_mut(entity).insert(data).remove::<VoidedOrExited>();
+        world
+            .entity_mut(entity)
+            .insert(data)
+            .remove::<VoidedOrExited>();
     }
 }

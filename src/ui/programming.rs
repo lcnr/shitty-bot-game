@@ -6,6 +6,7 @@ use super::MemUi;
 use crate::bot::edit::InstructionsEditor;
 use crate::bot::BotData;
 use crate::GameState;
+use crate::util::StateLocal;
 use bevy::prelude::*;
 
 pub struct StartButton(Entity);
@@ -14,12 +15,59 @@ impl CornerButton for StartButton {
     const MSG: &'static str = "Start";
 }
 
+pub struct ErrorText(Entity);
+
+const NO_ERROR: Color = Color::rgba(0.6, 0.7, 0.6, 0.5);
+const ERROR: Color = Color::rgba(0.8, 0.4, 0.4, 0.7);
+
+pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn_bundle(UiCameraBundle::default());
+    let start_button = commands
+        .spawn_bundle(ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Auto, Val::Auto),
+                position_type: PositionType::Absolute,
+                margin: Rect::all(Val::Auto),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                position: Rect {
+                    left: Val::Percent(1.0),
+                    right: Val::Percent(1.0),
+                    top: Val::Percent(85.0),
+                    bottom: Val::Percent(1.0),
+                },
+                ..Default::default()
+            },
+            color: NO_ERROR.into(),
+            ..Default::default()
+        })
+        .insert(StateLocal)
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle {
+                text: Text::with_section(
+                    "",
+                    TextStyle {
+                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                        font_size: 20.0,
+                        color: Color::rgb(0.9, 0.9, 0.9),
+                    },
+                    Default::default(),
+                ),
+                ..Default::default()
+            });
+        })
+        .id();
+
+    commands.insert_resource(ErrorText(start_button));
+}
+
 pub fn update(
     mut interaction_query: Query<(Entity, &Interaction), (Changed<Interaction>, With<Button>)>,
     mut state: ResMut<State<GameState>>,
     input: Res<Input<KeyCode>>,
     mut mem: ResMut<InstructionsEditor>,
     mem_ui: Res<MemUi>,
+    error_text: Res<ErrorText>,
     start_button: Res<StartButton>,
     mut color: Query<&mut UiColor>,
     children: Query<&Children>,
@@ -155,16 +203,30 @@ pub fn update(
         }
 
         if let Some((was_name, i)) = mem.on_selection_quit(value) {
-            let id = if was_name {
-                mem_ui.user_names[i]
-            } else {
-                mem_ui.user_values[i]
-            };
-            let mut color = color.get_mut(id).unwrap();
             if mem.error.is_none() {
-                *color = VALID_MEM.into();
+                let mut c = color.get_mut(mem_ui.user_names[i]).unwrap();
+                *c = VALID_MEM.into();
+                drop(c);
+                let mut c = color.get_mut(mem_ui.user_values[i]).unwrap();
+                *c = VALID_MEM.into();
             } else {
+                let mut color = color.get_mut(if was_name {
+                    mem_ui.user_names[i]
+                } else {
+                    mem_ui.user_values[i]
+                }).unwrap();
                 *color = INVALID_MEM.into();
+            }
+
+            let mut error_color = color.get_mut(error_text.0).unwrap();
+            let text_entity = children.get(error_text.0).unwrap()[0];
+            let text = &mut text.get_mut(text_entity).unwrap().sections[0].value;
+            if let Some(ref err) = mem.error {
+                *error_color = NO_ERROR.into();
+                *text = err.clone();
+            } else {
+                *error_color = ERROR.into();
+                *text = String::new();
             }
         }
 
@@ -183,7 +245,8 @@ pub fn update(
     }
 }
 
-pub fn exit(mut instructions: ResMut<InstructionsEditor>, mut bot_data: Query<&mut BotData>) {
+pub fn exit(mut commands: Commands, mut instructions: ResMut<InstructionsEditor>, mut bot_data: Query<&mut BotData>) {
+    commands.remove_resource::<ErrorText>();
     // TODO: this is wrong, only one bot. move to update.
     instructions.on_selection_quit(None);
     for mut bot_data in bot_data.iter_mut() {

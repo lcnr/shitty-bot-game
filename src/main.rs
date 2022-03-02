@@ -57,6 +57,7 @@ fn main() {
                 .with_system(ui::add_button::<StartButton>)
                 .with_system(util::reset_bot_and_box_state.exclusive_system())
                 .with_system(ui::refresh_mem)
+                .with_system(ui::programming::init)
                 .with_system(draw::init_map_system),
         )
         .add_system_set(
