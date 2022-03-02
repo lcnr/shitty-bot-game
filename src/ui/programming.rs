@@ -191,17 +191,6 @@ pub fn update(
             value = None;
         }
 
-        if let Some((is_name, i)) = value {
-            let id = if is_name {
-                mem_ui.user_names[i]
-            } else {
-                mem_ui.user_values[i]
-            };
-
-            let mut color = color.get_mut(id).unwrap();
-            *color = SELECTED_MEM.into();
-        }
-
         if let Some((was_name, i)) = mem.on_selection_quit(value) {
             if mem.error.is_none() {
                 let mut c = color.get_mut(mem_ui.user_names[i]).unwrap();
@@ -229,6 +218,18 @@ pub fn update(
                 *text = String::new();
             }
         }
+
+        if let Some((is_name, i)) = value {
+            let id = if is_name {
+                mem_ui.user_names[i]
+            } else {
+                mem_ui.user_values[i]
+            };
+
+            let mut color = color.get_mut(id).unwrap();
+            *color = SELECTED_MEM.into();
+        }
+        
 
         if let Some(s) = mem.active_cell_data() {
             s.clear();
