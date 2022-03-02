@@ -69,8 +69,7 @@ impl InstructionsEditor {
                         next = words.next();
                     }
 
-                    const BRANCH_COND_EXP: &str =
-                        "expected one of `box`, `wall`, `edge`, or `robot`";
+                    const BRANCH_COND_EXP: &str = "expected one of `box`, `wall`, or `edge`";
                     match next {
                         Some("box") => {
                             if negate {
@@ -91,13 +90,6 @@ impl InstructionsEditor {
                                 Instruction::IfNotEdge
                             } else {
                                 Instruction::IfEdge
-                            }
-                        }
-                        Some("robot") => {
-                            if negate {
-                                Instruction::IfNotRobot
-                            } else {
-                                Instruction::IfRobot
                             }
                         }
                         Some(e) => {

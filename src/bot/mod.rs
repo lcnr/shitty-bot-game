@@ -3,8 +3,8 @@ use std::fmt::Display;
 use bevy::prelude::*;
 
 use crate::draw::{self, DrawUpdates};
-use crate::{map::*, GameState, CurrentLevel};
 use crate::Direction;
+use crate::{map::*, CurrentLevel, GameState};
 
 pub mod edit;
 
@@ -89,11 +89,9 @@ pub enum Instruction {
     IfBox,
     IfWall,
     IfEdge,
-    IfRobot,
     IfNotBox,
     IfNotWall,
     IfNotEdge,
-    IfNotRobot,
 }
 
 impl Display for Instruction {
@@ -112,11 +110,9 @@ impl Display for Instruction {
                 Instruction::IfBox => "if box",
                 Instruction::IfWall => "if wall",
                 Instruction::IfEdge => "if edge",
-                Instruction::IfRobot => "if robot",
                 Instruction::IfNotBox => "if not box",
                 Instruction::IfNotWall => "if not wall",
                 Instruction::IfNotEdge => "if not edge",
-                Instruction::IfNotRobot => "if not robot",
             }
         )
     }
@@ -135,11 +131,9 @@ impl Instruction {
             | Instruction::IfBox
             | Instruction::IfWall
             | Instruction::IfEdge
-            | Instruction::IfRobot
             | Instruction::IfNotBox
             | Instruction::IfNotWall
-            | Instruction::IfNotEdge
-            | Instruction::IfNotRobot => true,
+            | Instruction::IfNotEdge => true,
         }
     }
 
@@ -152,14 +146,8 @@ impl Instruction {
             | Instruction::TurnRight
             | Instruction::Wait
             | Instruction::Goto => unreachable!(),
-            Instruction::IfBox
-            | Instruction::IfWall
-            | Instruction::IfEdge
-            | Instruction::IfRobot => true,
-            Instruction::IfNotBox
-            | Instruction::IfNotWall
-            | Instruction::IfNotEdge
-            | Instruction::IfNotRobot => false,
+            Instruction::IfBox | Instruction::IfWall | Instruction::IfEdge => true,
+            Instruction::IfNotBox | Instruction::IfNotWall | Instruction::IfNotEdge => false,
         }
     }
 }
@@ -259,15 +247,6 @@ pub fn run_bot_interpreter(
         Instruction::IfBox | Instruction::IfNotBox => {
             let cond =
                 instr.is_positive() == matches!(entity_on_tile_facing, Some(EntityKind::Box));
-            let target = state.read_value(bot);
-
-            if cond {
-                state.current_instruction = target;
-            }
-        }
-        Instruction::IfRobot | Instruction::IfNotRobot => {
-            let cond =
-                instr.is_positive() == matches!(entity_on_tile_facing, Some(EntityKind::Robot));
             let target = state.read_value(bot);
 
             if cond {
@@ -499,7 +478,9 @@ pub fn level_complete_checker(
     mut level: ResMut<Level>,
     mut current_level: ResMut<CurrentLevel>,
 ) {
-    let level_won = q.iter().all(|(pos, _)| matches!(level.map.tile(*pos), Place::Exit));
+    let level_won = q
+        .iter()
+        .all(|(pos, _)| matches!(level.map.tile(*pos), Place::Exit));
     if level_won {
         current_level.0 += 1;
         if current_level.0 == level_list.levels.len() {
