@@ -40,6 +40,10 @@ impl DrawUpdates {
 #[derive(Component, Debug, Clone, Copy)]
 pub struct MapTile;
 
+pub fn init_timer(world: &mut World) {
+    world.insert_resource(DrawTimer(Timer::from_seconds(0.0, false)));
+}
+
 pub fn init_map_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -48,8 +52,6 @@ pub fn init_map_system(
     entities: Query<(Entity, &EntityKind, &GridPos)>,
     robots: Query<&BotData>,
 ) {
-    commands.insert_resource(DrawTimer(Timer::from_seconds(0.0, false)));
-
     commands.spawn_bundle(DirectionalLightBundle {
         transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
         ..Default::default()

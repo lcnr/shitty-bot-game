@@ -76,6 +76,7 @@ fn main() {
         )
         .add_system_set(
             SystemSet::on_enter(GameState::Running)
+                .with_system(draw::init_timer.exclusive_system())
                 .with_system(draw::init_map_system)
                 .with_system(ui::refresh_mem)
                 .with_system(ui::running::init)
