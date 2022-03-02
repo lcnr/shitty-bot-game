@@ -3,10 +3,13 @@ use std::fmt::Display;
 use bevy::prelude::*;
 
 use crate::draw::{self, DrawUpdates};
-use crate::map::*;
+use crate::{map::*, GameState, CurrentLevel};
 use crate::Direction;
 
 pub mod edit;
+
+#[derive(Component, Copy, Clone, Debug)]
+pub struct VoidedOrExited;
 
 #[derive(Component)]
 pub struct BotData {
@@ -301,11 +304,12 @@ fn is_dirs_opposite(d1: Direction, d2: Direction) -> bool {
 }
 
 fn apply_bot_actions(
+    commands: &mut Commands,
     bot_id: Entity,
     map: &Map,
     queries: &mut QuerySet<(
         QueryState<(Entity, &BotData, &mut GridPos, &mut BotState)>,
-        QueryState<(Entity, &EntityKind, &GridPos)>,
+        QueryState<(Entity, &EntityKind, &GridPos), Without<VoidedOrExited>>,
         QueryState<&mut GridPos>,
     )>,
 ) -> Vec<(Entity, draw::Step)> {
@@ -329,7 +333,7 @@ fn apply_bot_actions(
                 tar_tile_pos: GridPos,
                 tar_tile: Place,
                 map: &Map,
-                blocking_entities: Query<(Entity, &EntityKind, &GridPos)>,
+                blocking_entities: Query<(Entity, &EntityKind, &GridPos), Without<VoidedOrExited>>,
             ) -> Vec<(Entity, draw::Step)> {
                 eprintln!(
                     "is_valid_move({:?}, {:?}, {:?}, {:?})",
@@ -421,6 +425,7 @@ fn apply_bot_actions(
                             state.steps.clear();
                             state.halted = true;
                         }
+                        commands.entity(e).insert(VoidedOrExited);
                     }
                     let mut q = queries.q2();
                     *q.get_mut(e).unwrap() = tar_pos;
@@ -438,7 +443,7 @@ fn apply_bot_actions(
 
 pub fn entity_on_tile(
     pos: GridPos,
-    q: Query<(Entity, &EntityKind, &GridPos)>,
+    q: Query<(Entity, &EntityKind, &GridPos), Without<VoidedOrExited>>,
 ) -> Option<EntityKind> {
     q.iter()
         .find(|(_, _, pos2)| pos == **pos2)
@@ -446,11 +451,12 @@ pub fn entity_on_tile(
 }
 
 pub fn progress_world(
+    mut commands: Commands,
     mut render_steps: ResMut<DrawUpdates>,
     level: Res<Level>,
     mut queries: QuerySet<(
         QueryState<(Entity, &BotData, &mut GridPos, &mut BotState)>,
-        QueryState<(Entity, &EntityKind, &GridPos)>,
+        QueryState<(Entity, &EntityKind, &GridPos), Without<VoidedOrExited>>,
         QueryState<&mut GridPos>,
     )>,
 ) {
@@ -481,7 +487,25 @@ pub fn progress_world(
         let (_, bot, pos, mut state) = q.get_mut(bot_id).unwrap();
 
         run_bot_interpreter(bot, *pos, &mut *state, map, entity_kind);
-        let changes = apply_bot_actions(bot_id, map, &mut queries);
+        let changes = apply_bot_actions(&mut commands, bot_id, map, &mut queries);
         render_steps.data.push_back(changes);
+    }
+}
+
+pub fn level_complete_checker(
+    mut state: ResMut<State<GameState>>,
+    q: Query<(&GridPos, &EntityKind)>,
+    level_list: Res<LevelList>,
+    mut level: ResMut<Level>,
+    mut current_level: ResMut<CurrentLevel>,
+) {
+    let level_won = q.iter().all(|(pos, _)| matches!(level.map.tile(*pos), Place::Exit));
+    if level_won {
+        current_level.0 += 1;
+        if current_level.0 == level_list.levels.len() {
+            todo!("handle beating final level");
+        }
+        *level = level_list.levels[current_level.0].clone();
+        state.set(GameState::ChangeLevel).unwrap();
     }
 }

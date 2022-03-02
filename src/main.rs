@@ -14,6 +14,9 @@ use bot::BotState;
 use ui::programming::StartButton;
 use ui::running::StopButton;
 
+#[derive(Copy, Clone, Debug)]
+pub struct CurrentLevel(usize);
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
     StartScreen,
@@ -37,6 +40,7 @@ fn main() {
         .add_state(GameState::StartScreen)
         .insert_resource(levels.clone())
         .insert_resource(levels.levels[0].clone())
+        .insert_resource(CurrentLevel(0))
         .insert_resource(bot::edit::InstructionsEditor::new())
         .insert_resource(draw::DrawUpdates::empty())
         .add_system_set(SystemSet::on_enter(GameState::StartScreen).with_system(
@@ -51,7 +55,7 @@ fn main() {
         .add_system_set(
             SystemSet::on_enter(GameState::Programming)
                 .with_system(ui::add_button::<StartButton>)
-                .with_system(util::reset_bot_and_box_positions.exclusive_system())
+                .with_system(util::reset_bot_and_box_state.exclusive_system())
                 .with_system(ui::refresh_mem)
                 .with_system(draw::init_map_system),
         )
@@ -76,7 +80,7 @@ fn main() {
         )
         .add_system_set(
             SystemSet::on_enter(GameState::Running)
-                .with_system(draw::init_timer.exclusive_system())
+                .with_system(draw::init_timer.exclusive_system().before("update_map_sys"))
                 .with_system(draw::init_map_system)
                 .with_system(ui::refresh_mem)
                 .with_system(ui::running::init)
@@ -94,10 +98,11 @@ fn main() {
         .add_system_set(
             SystemSet::on_update(GameState::Running)
                 .with_system(bot::progress_world)
-                .with_system(draw::update_map_system)
+                .with_system(draw::update_map_system.label("update_map_sys"))
                 .with_system(ui::running::update1)
                 .with_system(ui::refresh_mem.label("refresh"))
-                .with_system(ui::running::update2.after("refresh")),
+                .with_system(ui::running::update2.after("refresh"))
+                .with_system(bot::level_complete_checker),
         )
         .add_system_set(
             SystemSet::on_exit(GameState::Running)
@@ -111,6 +116,5 @@ fn main() {
                     },
                 ),
         )
-        .add_system_set(SystemSet::on_update(GameState::Running))
         .run();
 }
