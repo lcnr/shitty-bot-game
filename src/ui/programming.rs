@@ -138,7 +138,11 @@ pub fn update(
         cell.push(c)
     }
 
-    if let Some(value) = update_cell {
+    if let Some(mut value) = update_cell {
+        if value == mem.active_cell {
+            value = None;
+        }
+
         if let Some((is_name, i)) = value {
             let id = if is_name {
                 mem_ui.user_names[i]
