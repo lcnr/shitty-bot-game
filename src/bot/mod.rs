@@ -3,7 +3,7 @@ use std::fmt::Display;
 use bevy::prelude::*;
 
 use crate::draw::{self, DrawUpdates};
-use crate::{map::*, GameState};
+use crate::map::*;
 use crate::Direction;
 
 pub mod edit;

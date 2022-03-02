@@ -243,7 +243,7 @@ fn pos_to_world(map: &Map, GridPos(x, y): GridPos) -> Vec3 {
         Place::Ramp(_) => (UPPER_FLOOR + LOWER_FLOOR) / 2.0,
         Place::Void => -1.0,
         Place::Exit => LOWER_FLOOR,
-        _ => todo!()
+        _ => todo!(),
     };
 
     Vec3::new(
