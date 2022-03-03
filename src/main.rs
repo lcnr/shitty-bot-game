@@ -35,6 +35,7 @@ pub enum Direction {
 
 fn main() {
     let levels = map::read_levels("./levels.json");
+    dbg!(&levels);
     App::new()
         .add_plugins(DefaultPlugins)
         .add_state(GameState::StartScreen)
@@ -82,7 +83,7 @@ fn main() {
         .add_system_set(
             SystemSet::on_enter(GameState::Running)
                 .with_system(draw::init_timer.exclusive_system().before("update_map_sys"))
-                .with_system(draw::init_map_system)
+                .with_system(draw::init_map_system.before("update_map_sys"))
                 .with_system(ui::refresh_mem)
                 .with_system(ui::running::init)
                 .with_system(ui::add_button::<StopButton>)
@@ -94,21 +95,24 @@ fn main() {
                                 .insert(BotState::new(Direction::Right));
                         }
                     },
-                ),
+                ).label("enter_running"),
         )
         .add_system_set(
             SystemSet::on_update(GameState::Running)
-                .with_system(bot::progress_world)
+                .with_system(bot::progress_world.before("update_map_sys"))
                 .with_system(draw::update_map_system.label("update_map_sys"))
                 .with_system(ui::running::update1)
                 .with_system(ui::refresh_mem.label("refresh"))
                 .with_system(ui::running::update2.after("refresh"))
-                .with_system(bot::level_complete_checker),
+                .with_system(bot::level_complete_checker).after("enter_running"),
         )
         .add_system_set(
             SystemSet::on_exit(GameState::Running)
                 .with_system(util::delete_local_entities)
                 .with_system(ui::remove_button::<StopButton>)
+                .with_system(|mut draw_steps: ResMut<draw::DrawUpdates>| {
+                    draw_steps.data.clear();
+                })
                 .with_system(
                     |mut commands: Commands, query: Query<Entity, With<BotData>>| {
                         for entity in query.iter() {
