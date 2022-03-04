@@ -66,11 +66,22 @@ impl Level {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Map {
     pub width: usize,
     pub height: usize,
     pub layout: Vec<Place>,
+}
+
+impl std::fmt::Debug for Map {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!("Map {}x{}:", self.width, self.height))?;
+        for chunk in self.layout.chunks(self.width) {
+            let mut f = f.debug_list();
+            f.entries(chunk.iter()).finish()?;
+        }
+        Ok(())
+    }
 }
 
 impl Map {
