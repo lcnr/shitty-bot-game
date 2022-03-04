@@ -203,10 +203,7 @@ pub fn update(
     }
 }
 
-pub fn exit(
-    mut instructions: ResMut<InstructionsEditor>,
-    mut bot_data: Query<&mut BotData>,
-) {
+pub fn exit(mut instructions: ResMut<InstructionsEditor>, mut bot_data: Query<&mut BotData>) {
     // TODO: this is wrong, only one bot. move to update.
     instructions.on_selection_quit(None);
     for mut bot_data in bot_data.iter_mut() {

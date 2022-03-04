@@ -1,8 +1,8 @@
-use super::ERROR;
-use super::ErrorText;
 use super::buttons::*;
 use super::CornerButton;
+use super::ErrorText;
 use super::MemUi;
+use super::ERROR;
 use crate::bot::BotData;
 use crate::bot::BotState;
 use crate::bot::ExecutionFailure;

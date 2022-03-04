@@ -236,9 +236,9 @@ pub fn run_bot_interpreter(
         }
         Instruction::IfEdge | Instruction::IfNotEdge => {
             let to_jump_or_not_to_jump = instr.is_positive()
-                == (matches!(map.tile(pos), Place::UpperFloor)
+                == ((matches!(map.tile(pos), Place::UpperFloor)
                     && matches!(map.tile(facing_grid_pos), Place::LowerFloor))
-                || matches!(map.tile(pos), Place::Void);
+                    || matches!(map.tile(facing_grid_pos), Place::Void));
             let target = state.read_value(bot);
 
             if to_jump_or_not_to_jump {
@@ -479,12 +479,28 @@ pub fn failure_detector(
     bot_state: Query<&BotState>,
     level: Res<Level>,
 ) {
-    if q.iter().any(|(pos, kind)| matches!(kind, EntityKind::Robot) && matches!(level.map.tile(*pos), Place::Void)) {
-        commands.insert_resource(ExecutionFailure(format!("stage failed: the robot fell into the void and will not make further progress")));
+    if q.iter().any(|(pos, kind)| {
+        matches!(kind, EntityKind::Robot) && matches!(level.map.tile(*pos), Place::Void)
+    }) {
+        commands.insert_resource(ExecutionFailure(format!(
+            "stage failed: the robot fell into the void and will not make further progress"
+        )));
+    } else if q.iter().any(|(pos, kind)| {
+        matches!(kind, EntityKind::Robot) && matches!(level.map.tile(*pos), Place::Exit)
+    }) {
+        commands.insert_resource(ExecutionFailure(format!(
+            "stage failed: the robot entered the exit without first inserting all boxes"
+        )));
     } else if bot_state.iter().any(|st| st.halted) {
-        commands.insert_resource(ExecutionFailure(format!("stage failed: the robot halted and will not make further progress")));
-    } else if q.iter().any(|(pos, kind)| matches!(kind, EntityKind::Box) && matches!(level.map.tile(*pos), Place::Void)) {
-        commands.insert_resource(ExecutionFailure(format!("stage failed: a box fell into the void prevent a successful finish")));
+        commands.insert_resource(ExecutionFailure(format!(
+            "stage failed: the robot halted and will not make further progress"
+        )));
+    } else if q.iter().any(|(pos, kind)| {
+        matches!(kind, EntityKind::Box) && matches!(level.map.tile(*pos), Place::Void)
+    }) {
+        commands.insert_resource(ExecutionFailure(format!(
+            "stage failed: a box fell into the void prevent a successful finish"
+        )));
     }
 }
 
