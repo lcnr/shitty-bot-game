@@ -132,10 +132,10 @@ impl InstructionsEditor {
                 self.user_values[cell] = format!("{}", self.instructions[cell]);
                 return;
             }
-            let value = match self.user_values[cell].parse::<u8>() {
+            let value = match self.user_values[cell].parse::<u128>() {
                 Ok(v) => {
                     if v < 32 {
-                        v
+                        v as u8
                     } else {
                         self.error = Some(format!(
                             "the value `{}` cannot be stored as it is larger than 31",
