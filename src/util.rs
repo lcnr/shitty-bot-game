@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited, BotState},
+    bot::{self, edit::InstructionsEditor, BotData, BotState, VoidedOrExited},
     map::{self, BoxData, EntityKind, Level, LevelList},
     CurrentLevel, GameState,
 };

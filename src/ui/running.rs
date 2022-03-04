@@ -1,8 +1,11 @@
+use super::ERROR;
+use super::ErrorText;
 use super::buttons::*;
 use super::CornerButton;
 use super::MemUi;
 use crate::bot::BotData;
 use crate::bot::BotState;
+use crate::bot::ExecutionFailure;
 use crate::bot::Instruction;
 use crate::GameState;
 use bevy::prelude::*;
@@ -61,7 +64,11 @@ pub fn update1(
 
 pub fn update2(
     mem_ui: Res<MemUi>,
+    error: Res<ErrorText>,
+    error_msg: Option<Res<ExecutionFailure>>,
     bots: Query<(&BotData, &BotState)>,
+    children: Query<&Children>,
+    mut text: Query<&mut Text>,
     mut color_query: Query<&mut UiColor>,
 ) {
     for (data, state) in bots.iter() {
@@ -79,5 +86,12 @@ pub fn update2(
                 .unwrap();
             *color = SELECTED_MEM.into();
         }
+    }
+
+    if let Some(msg) = error_msg {
+        let mut color = color_query.get_mut(error.0).unwrap();
+        *color = ERROR.into();
+        let text_entity = children.get(error.0).unwrap()[0];
+        text.get_mut(text_entity).unwrap().sections[0].value = msg.0.clone();
     }
 }

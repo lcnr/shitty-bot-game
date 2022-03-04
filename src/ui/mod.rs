@@ -18,6 +18,9 @@ mod buttons {
 }
 use buttons::*;
 
+const NO_ERROR: Color = Color::rgba(0.6, 0.7, 0.6, 0.5);
+const ERROR: Color = Color::rgba(0.8, 0.4, 0.4, 0.7);
+
 pub struct MemUi {
     user_names: [Entity; 32],
     user_values: [Entity; 32],
@@ -26,7 +29,47 @@ pub struct MemUi {
 #[derive(Component)]
 pub struct MemUiData;
 
-pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub struct ErrorText(Entity);
+
+pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let error_text = commands
+        .spawn_bundle(ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Auto, Val::Auto),
+                position_type: PositionType::Absolute,
+                margin: Rect::all(Val::Auto),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                position: Rect {
+                    left: Val::Percent(1.0),
+                    right: Val::Percent(1.0),
+                    top: Val::Percent(85.0),
+                    bottom: Val::Percent(1.0),
+                },
+                ..Default::default()
+            },
+            color: NO_ERROR.into(),
+            ..Default::default()
+        })
+        .insert(MemUiData)
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle {
+                text: Text::with_section(
+                    "",
+                    TextStyle {
+                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                        font_size: 20.0,
+                        color: Color::rgb(0.9, 0.9, 0.9),
+                    },
+                    Default::default(),
+                ),
+                ..Default::default()
+            });
+        })
+        .id();
+
+    commands.insert_resource(ErrorText(error_text));
+
     // mk ui
     let mut user_names = Vec::new();
     let mut user_values = Vec::new();
@@ -145,11 +188,19 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 pub fn refresh_mem(
     mem_ui: Res<MemUi>,
+    error: Res<ErrorText>,
     mem: Query<&BotData>,
     mut color: Query<&mut UiColor>,
     children: Query<&Children>,
     mut text: Query<&mut Text>,
 ) {
+    {
+        let mut color = color.get_mut(error.0).unwrap();
+        *color = NO_ERROR.into();
+        let text_entity = children.get(error.0).unwrap()[0];
+        text.get_mut(text_entity).unwrap().sections[0].value = String::new();
+    }
+
     for mem in mem.iter() {
         let iter = iter::zip(
             &mem.instructions,
@@ -174,6 +225,7 @@ pub fn refresh_mem(
 }
 
 pub fn clear_mem(mut commands: Commands, to_remove: Query<(Entity, &MemUiData)>) {
+    commands.remove_resource::<ErrorText>();
     commands.remove_resource::<MemUi>();
     for (entity, _local) in to_remove.iter() {
         commands.entity(entity).despawn_recursive();

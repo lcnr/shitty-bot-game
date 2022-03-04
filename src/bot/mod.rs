@@ -473,6 +473,21 @@ pub fn progress_world(
     }
 }
 
+pub fn failure_detector(
+    mut commands: Commands,
+    q: Query<(&GridPos, &EntityKind)>,
+    bot_state: Query<&BotState>,
+    level: Res<Level>,
+) {
+    if q.iter().any(|(pos, kind)| matches!(kind, EntityKind::Robot) && matches!(level.map.tile(*pos), Place::Void)) {
+        commands.insert_resource(ExecutionFailure(format!("stage failed: the robot fell into the void and will not make further progress")));
+    } else if bot_state.iter().any(|st| st.halted) {
+        commands.insert_resource(ExecutionFailure(format!("stage failed: the robot halted and will not make further progress")));
+    } else if q.iter().any(|(pos, kind)| matches!(kind, EntityKind::Box) && matches!(level.map.tile(*pos), Place::Void)) {
+        commands.insert_resource(ExecutionFailure(format!("stage failed: a box fell into the void prevent a successful finish")));
+    }
+}
+
 pub fn level_complete_checker(
     mut state: ResMut<State<GameState>>,
     q: Query<(&GridPos, &EntityKind)>,
@@ -494,3 +509,5 @@ pub fn init_state(mut commands: Commands, bots: Query<(Entity, &BotData)>) {
         commands.entity(e).insert(BotState::new(data.start_dir));
     }
 }
+
+pub struct ExecutionFailure(pub String);

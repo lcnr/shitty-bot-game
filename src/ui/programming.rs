@@ -2,10 +2,12 @@ use std::iter;
 
 use super::buttons::*;
 use super::CornerButton;
+use super::ErrorText;
 use super::MemUi;
+use super::ERROR;
+use super::NO_ERROR;
 use crate::bot::edit::InstructionsEditor;
 use crate::bot::BotData;
-use crate::util::StateLocal;
 use crate::GameState;
 use bevy::prelude::*;
 
@@ -13,51 +15,6 @@ pub struct StartButton(Entity);
 impl CornerButton for StartButton {
     const MK: fn(Entity) -> Self = StartButton;
     const MSG: &'static str = "Start";
-}
-
-pub struct ErrorText(Entity);
-
-const NO_ERROR: Color = Color::rgba(0.6, 0.7, 0.6, 0.5);
-const ERROR: Color = Color::rgba(0.8, 0.4, 0.4, 0.7);
-
-pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let error_button = commands
-        .spawn_bundle(ButtonBundle {
-            style: Style {
-                size: Size::new(Val::Auto, Val::Auto),
-                position_type: PositionType::Absolute,
-                margin: Rect::all(Val::Auto),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                position: Rect {
-                    left: Val::Percent(1.0),
-                    right: Val::Percent(1.0),
-                    top: Val::Percent(85.0),
-                    bottom: Val::Percent(1.0),
-                },
-                ..Default::default()
-            },
-            color: NO_ERROR.into(),
-            ..Default::default()
-        })
-        .insert(StateLocal)
-        .with_children(|parent| {
-            parent.spawn_bundle(TextBundle {
-                text: Text::with_section(
-                    "",
-                    TextStyle {
-                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 20.0,
-                        color: Color::rgb(0.9, 0.9, 0.9),
-                    },
-                    Default::default(),
-                ),
-                ..Default::default()
-            });
-        })
-        .id();
-
-    commands.insert_resource(ErrorText(error_button));
 }
 
 pub fn update(
@@ -247,11 +204,9 @@ pub fn update(
 }
 
 pub fn exit(
-    mut commands: Commands,
     mut instructions: ResMut<InstructionsEditor>,
     mut bot_data: Query<&mut BotData>,
 ) {
-    commands.remove_resource::<ErrorText>();
     // TODO: this is wrong, only one bot. move to update.
     instructions.on_selection_quit(None);
     for mut bot_data in bot_data.iter_mut() {

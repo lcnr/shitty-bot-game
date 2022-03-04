@@ -17,6 +17,8 @@ use serde::Serialize;
 use ui::programming::StartButton;
 use ui::running::StopButton;
 
+use crate::bot::ExecutionFailure;
+
 #[derive(Copy, Clone, Debug)]
 pub struct CurrentLevel(usize);
 
@@ -66,14 +68,13 @@ fn main() {
         .add_system_set(
             SystemSet::on_exit(GameState::StartScreen).with_system(util::delete_local_entities),
         )
-        .add_system_set(SystemSet::on_exit(GameState::StartScreen).with_system(ui::initialize_mem))
+        .add_system_set(SystemSet::on_exit(GameState::StartScreen).with_system(ui::init))
         .add_system_set(
             SystemSet::on_enter(GameState::Programming)
                 .with_system(ui::add_button::<StartButton>)
                 .with_system(bot::init_state)
                 .with_system(util::reset_bot_and_box_state.exclusive_system())
                 .with_system(ui::refresh_mem)
-                .with_system(ui::programming::init)
                 .with_system(draw::init_map_system),
         )
         .add_system_set(
@@ -103,6 +104,7 @@ fn main() {
                 .with_system(ui::refresh_mem.label("refresh"))
                 .with_system(ui::running::update2.after("refresh"))
                 .with_system(bot::level_complete_checker)
+                .with_system(bot::failure_detector)
                 .with_system(util::to_start),
         )
         .add_system_set(
@@ -117,6 +119,7 @@ fn main() {
                         for entity in query.iter() {
                             commands.entity(entity).remove::<BotState>();
                         }
+                        commands.remove_resource::<ExecutionFailure>();
                     },
                 ),
         )
