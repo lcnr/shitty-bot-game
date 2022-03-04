@@ -39,7 +39,7 @@ impl DrawUpdates {
 }
 
 pub fn init_timer(world: &mut World) {
-    world.insert_resource(DrawTimer(Timer::from_seconds(0.0, false)));
+    world.insert_resource(DrawTimer(Timer::from_seconds(0.5, false)));
 }
 
 pub fn init_map_system(
@@ -50,47 +50,42 @@ pub fn init_map_system(
     entities: Query<(Entity, &EntityKind, &GridPos)>,
     robots: Query<&BotData>,
 ) {
-    commands
-        .spawn_bundle(DirectionalLightBundle {
-            transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
-            ..Default::default()
-        })
-        .insert(StateLocal);
-    let viewing_pos = Vec3::new(level.map.width as f32, level.map.height as f32, 15.0);
-    commands
-        .spawn_bundle(PerspectiveCameraBundle {
-            transform: Transform::from_translation(viewing_pos)
-                .looking_at(Vec3::ZERO, Vec3::Z)
-                .with_translation(
-                    viewing_pos - (Vec3::X * level.map.width as f32 / 3.0)
-                        + (Vec3::Y * level.map.height as f32 / 3.0),
-                ),
-            ..Default::default()
-        })
-        .insert(StateLocal);
+    commands.spawn_bundle(DirectionalLightBundle {
+        transform: Transform::from_xyz(1.7, 10.0, 2.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..Default::default()
+    }).insert(StateLocal);
+    let viewing_pos = Vec3::new(
+        (level.map.height as f32) * 0.7,
+        15.0,
+        (level.map.height as f32) * 1.3,
+    );
+    commands.spawn_bundle(PerspectiveCameraBundle {
+        transform: Transform::from_translation(viewing_pos).looking_at(Vec3::ZERO, Vec3::Y),
+        ..Default::default()
+    }).insert(StateLocal);
 
     let box_xy = shape::Box {
         min_x: -0.5,
         max_x: 0.5,
-        min_y: -0.5,
-        max_y: 0.5,
-        min_z: 0.0,
-        max_z: 1.0,
+        min_y: 0.0,
+        max_y: 1.0,
+        min_z: -0.5,
+        max_z: 0.5,
     };
 
     for x in 0..level.map.width {
         for y in 0..level.map.height {
             let transform = Transform::from_xyz(
                 x as f32 - level.map.width as f32 / 2.0,
-                y as f32 - level.map.height as f32 / 2.0,
                 0.0,
+                y as f32 - level.map.height as f32 / 2.0,
             );
             match level.map.tile(GridPos(x, y)) {
                 Place::UpperFloor => {
                     commands
                         .spawn_bundle(PbrBundle {
                             mesh: meshes.add(Mesh::from(shape::Box {
-                                max_z: UPPER_FLOOR,
+                                max_y: UPPER_FLOOR,
                                 ..box_xy
                             })),
                             material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
@@ -103,7 +98,7 @@ pub fn init_map_system(
                     commands
                         .spawn_bundle(PbrBundle {
                             mesh: meshes.add(Mesh::from(shape::Box {
-                                max_z: LOWER_FLOOR,
+                                max_y: LOWER_FLOOR,
                                 ..box_xy
                             })),
                             material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
@@ -117,7 +112,8 @@ pub fn init_map_system(
                         .spawn_bundle(PbrBundle {
                             mesh: meshes.add(mesh::slope_mesh(dir)),
                             material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-                            transform,
+                            transform: transform
+                                .looking_at(transform.translation - Vec3::Y, Vec3::Z),
                             ..Default::default()
                         })
                         .insert(StateLocal);
@@ -127,7 +123,7 @@ pub fn init_map_system(
                     commands
                         .spawn_bundle(PbrBundle {
                             mesh: meshes.add(Mesh::from(shape::Box {
-                                max_z: 0.9,
+                                max_y: 0.9,
                                 ..box_xy
                             })),
                             material: materials.add(Color::rgb(0.7, 0.9, 0.7).into()),
@@ -140,7 +136,7 @@ pub fn init_map_system(
                     commands
                         .spawn_bundle(PbrBundle {
                             mesh: meshes.add(Mesh::from(shape::Box {
-                                max_z: 1.0,
+                                max_y: 1.0,
                                 ..box_xy
                             })),
                             material: materials.add(Color::rgb(0.1, 0.9, 0.1).into()),
@@ -162,8 +158,10 @@ pub fn init_map_system(
                 commands.get_or_spawn(entity).insert_bundle(PbrBundle {
                     mesh: meshes.add(mesh::robot_mesh()),
                     material: materials.add(Color::rgb(0.25, 0.12, 0.1).into()),
-                    transform: transform
-                        .with_rotation(Quat::from_rotation_z(dir_to_radians(state.start_dir))),
+                    transform: transform.with_rotation(
+                        Quat::from_rotation_y(dir_to_radians(state.start_dir))
+                            * Quat::from_rotation_x(std::f32::consts::PI * 1.5),
+                    ),
                     ..Default::default()
                 });
             }
@@ -172,10 +170,10 @@ pub fn init_map_system(
                     mesh: meshes.add(Mesh::from(shape::Box {
                         min_x: -0.4,
                         max_x: 0.4,
-                        min_y: -0.4,
-                        max_y: 0.4,
-                        min_z: 0.0,
-                        max_z: 0.8,
+                        min_y: 0.0,
+                        max_y: 0.8,
+                        min_z: -0.4,
+                        max_z: 0.4,
                     })),
                     material: materials.add(Color::rgb(0.25, 0.12, 0.1).into()),
                     transform,
@@ -226,15 +224,17 @@ pub fn update_map_system(
             Step::MoveFail => {}
             Step::UpdateDir(old, new) => {
                 let mut transform = transforms.get_mut(entity).expect("sus step");
-                let mut old_rad = dir_to_radians(old);
+                let old_rad = dir_to_radians(old);
                 let new_rad = dir_to_radians(new);
-                if new_rad - old_rad > std::f32::consts::PI {
-                    old_rad += std::f32::consts::PI * 2.0;
-                } else if old_rad - new_rad > std::f32::consts::PI {
-                    old_rad -= std::f32::consts::PI * 2.0;
+                let old_rot = Quat::from_rotation_y(old_rad)
+                    * Quat::from_rotation_x(dir_to_radians(Direction::Right));
+                let new_rot = Quat::from_rotation_y(new_rad)
+                    * Quat::from_rotation_x(dir_to_radians(Direction::Right));
+                if old_rot.dot(new_rot) < 0. {
+                    transform.rotation = (-old_rot).slerp(new_rot, timer.percent());
+                } else {
+                    transform.rotation = old_rot.slerp(new_rot, timer.percent());
                 }
-                let angle = interpolate(timer.percent(), old_rad, new_rad);
-                *transform = transform.with_rotation(Quat::from_rotation_z(angle));
             }
         }
     }
@@ -252,8 +252,8 @@ fn pos_to_world(map: &Map, GridPos(x, y): GridPos) -> Vec3 {
 
     Vec3::new(
         x as f32 - map.width as f32 / 2.0,
-        y as f32 - map.height as f32 / 2.0,
         height,
+        y as f32 - map.height as f32 / 2.0,
     )
 }
 
