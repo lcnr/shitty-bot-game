@@ -21,8 +21,13 @@
   },
   {
     "map": "edge-2-box",
-    "boxes": [[2, 3]],
-    "bots": [[2, 1, "Down"]]
+    "boxes": [[3, 2],[3, 3]],
+    "bots": [[1, 2, "Right"]]
+  },
+  {
+    "map": "repetition-legitimizes",
+    "boxes": [],
+    "bots": [[1, 1, "Right"]]
   },
   {
     "map": "start",

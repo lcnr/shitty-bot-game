@@ -38,7 +38,7 @@ pub fn init(mut commands: Commands, levels: Res<LevelList>, asset_server: Res<As
                         left: Val::Percent(20.0 + (i % 6) as f32 * 10.0),
                         right: Val::Percent(75.0 - (i % 6) as f32 * 10.0),
                         top: Val::Percent(30.0 + (i / 6) as f32 * 10.0),
-                        bottom: Val::Percent(65.0 + (i / 6) as f32 * 10.0),
+                        bottom: Val::Percent(65.0 - (i / 6) as f32 * 10.0),
                     },
                     ..Default::default()
                 },
