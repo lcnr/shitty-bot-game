@@ -12,6 +12,34 @@ const DONE: Color = Color::rgb(0.4, 1.0, 0.4);
 
 pub fn init(mut commands: Commands, levels: Res<LevelList>, asset_server: Res<AssetServer>) {
     commands
+        .spawn_bundle(TextBundle {
+            style: Style {
+                size: Size::new(Val::Auto, Val::Auto),
+                position_type: PositionType::Absolute,
+                margin: Rect::all(Val::Auto),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                position: Rect {
+                    left: Val::Percent(20.0),
+                    right: Val::Percent(20.0),
+                    top: Val::Percent(5.0),
+                    bottom: Val::Auto,
+                },
+                ..Default::default()
+            },
+            text: Text::with_section(
+                "ShItTy BoT gAmE",
+                TextStyle {
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 60.0,
+                    color: Color::rgb(0.9, 0.9, 0.9),
+                },
+                Default::default(),
+            ),
+            ..Default::default()
+        })
+        .insert(StateLocal);
+    commands
         .spawn_bundle(DirectionalLightBundle {
             transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
             ..Default::default()
