@@ -2,11 +2,11 @@
   {
     "map": "start.map",
     "boxes":[[8, 7]],
-    "bots": [[2, 2]]
+    "bots": [[2, 2, "Right"]]
   },
   {
     "map": "example.map",
     "boxes":[[4,3],[5,3]],
-    "bots":[[3,3]]
+    "bots":[[3,3,"Right"]]
   }
 ]

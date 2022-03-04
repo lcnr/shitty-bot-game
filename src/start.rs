@@ -1,6 +1,6 @@
-use crate::CurrentLevel;
 use crate::map::LevelList;
 use crate::util::StateLocal;
+use crate::CurrentLevel;
 use crate::GameState;
 use bevy::prelude::*;
 

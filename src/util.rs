@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited},
     map::{self, BoxData, EntityKind, Level, LevelList},
-    Direction, GameState, CurrentLevel,
+    CurrentLevel, Direction, GameState,
 };
 
 #[derive(Component)]
@@ -15,7 +15,11 @@ pub fn delete_local_entities(mut commands: Commands, to_remove: Query<(Entity, &
     }
 }
 
-pub fn update_level_data(mut level: ResMut<Level>, levels: Res<LevelList>, current: Res<CurrentLevel>) {
+pub fn update_level_data(
+    mut level: ResMut<Level>,
+    levels: Res<LevelList>,
+    current: Res<CurrentLevel>,
+) {
     *level = levels.levels[current.0].clone();
 }
 
@@ -38,10 +42,10 @@ pub fn spawn_map_entities(
         commands.entity(e).despawn();
     }
 
-    for &bot_pos in &level.bots {
+    for &(bot_pos, dir) in &level.bots {
         commands
             .spawn()
-            .insert(bot::BotData::new(bot_pos, Direction::Right))
+            .insert(bot::BotData::new(bot_pos, dir))
             .insert(bot::BotState::new(Direction::Right))
             .insert(map::EntityKind::Robot);
     }
@@ -72,4 +76,3 @@ pub fn reset_bot_and_box_state(world: &mut World) {
             .remove::<VoidedOrExited>();
     }
 }
-

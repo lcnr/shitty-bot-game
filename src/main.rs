@@ -12,6 +12,8 @@ mod util;
 
 use bot::BotData;
 use bot::BotState;
+use serde::Deserialize;
+use serde::Serialize;
 use ui::programming::StartButton;
 use ui::running::StopButton;
 
@@ -26,7 +28,7 @@ pub enum GameState {
     ChangeLevel,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
     Up,
     Down,
@@ -49,7 +51,11 @@ fn main() {
         .insert_resource(bot::edit::InstructionsEditor::new())
         .insert_resource(draw::DrawUpdates::empty())
         .add_startup_system(start_up_system)
-        .add_system_set(SystemSet::on_enter(GameState::StartScreen).with_system(ui::clear_mem.exclusive_system()).with_system(start::init))
+        .add_system_set(
+            SystemSet::on_enter(GameState::StartScreen)
+                .with_system(ui::clear_mem.exclusive_system())
+                .with_system(start::init),
+        )
         .add_system_set(SystemSet::on_update(GameState::StartScreen).with_system(start::update))
         .add_system_set(
             SystemSet::on_enter(GameState::ChangeLevel)

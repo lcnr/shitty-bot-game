@@ -36,14 +36,14 @@ pub fn read_levels(file: &str) -> LevelList {
 pub struct LevelSerde {
     pub map: String,
     pub boxes: Vec<(usize, usize)>,
-    pub bots: Vec<(usize, usize)>,
+    pub bots: Vec<(usize, usize, Direction)>,
 }
 
 #[derive(Clone, Debug)]
 pub struct Level {
     pub map: Map,
     pub boxes: Vec<GridPos>,
-    pub bots: Vec<GridPos>,
+    pub bots: Vec<(GridPos, Direction)>,
 }
 
 impl Level {
@@ -60,7 +60,7 @@ impl Level {
             bots: level_serde
                 .bots
                 .into_iter()
-                .map(|(x, y)| GridPos(x, y))
+                .map(|(x, y, dir)| (GridPos(x, y), dir))
                 .collect(),
         }
     }
