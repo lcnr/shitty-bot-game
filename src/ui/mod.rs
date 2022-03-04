@@ -23,6 +23,9 @@ pub struct MemUi {
     user_values: [Entity; 32],
 }
 
+#[derive(Component)]
+pub struct MemUiData;
+
 pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
     // mk ui
     let mut user_names = Vec::new();
@@ -53,7 +56,7 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
                 Default::default(),
             ),
             ..Default::default()
-        });
+        }).insert(MemUiData);
         for x in 0..4 {
             user_names.push(
                 commands
@@ -88,7 +91,7 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ),
                             ..Default::default()
                         });
-                    })
+                    }).insert(MemUiData)
                     .id(),
             );
             user_values.push(
@@ -124,7 +127,7 @@ pub fn initialize_mem(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ),
                             ..Default::default()
                         });
-                    })
+                    }).insert(MemUiData)
                     .id(),
             );
         }
@@ -163,6 +166,16 @@ pub fn refresh_mem(
                 text.get_mut(text_entity).unwrap().sections[0].value = instr.to_string();
             }
         }
+    }
+}
+
+pub fn clear_mem(
+    mut commands: Commands,
+    to_remove: Query<(Entity, &MemUiData)>,
+) {
+    commands.remove_resource::<MemUi>();
+    for (entity, _local) in to_remove.iter() {
+        commands.entity(entity).despawn_recursive();
     }
 }
 

@@ -474,19 +474,15 @@ pub fn progress_world(
 pub fn level_complete_checker(
     mut state: ResMut<State<GameState>>,
     q: Query<(&GridPos, &EntityKind)>,
-    level_list: Res<LevelList>,
-    mut level: ResMut<Level>,
-    mut current_level: ResMut<CurrentLevel>,
+    level: Res<Level>,
+    mut level_list: ResMut<LevelList>,
+    current_level: Res<CurrentLevel>,
 ) {
     let level_won = q
         .iter()
         .all(|(pos, _)| matches!(level.map.tile(*pos), Place::Exit));
     if level_won {
-        current_level.0 += 1;
-        if current_level.0 == level_list.levels.len() {
-            todo!("handle beating final level");
-        }
-        *level = level_list.levels[current_level.0].clone();
-        state.set(GameState::ChangeLevel).unwrap();
+        level_list.beaten[current_level.0] = true;
+        state.set(GameState::StartScreen).unwrap();
     }
 }

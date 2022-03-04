@@ -1,4 +1,4 @@
-use crate::map::Level;
+use crate::CurrentLevel;
 use crate::map::LevelList;
 use crate::util::StateLocal;
 use crate::GameState;
@@ -66,14 +66,13 @@ pub fn init(mut commands: Commands, levels: Res<LevelList>, asset_server: Res<As
 
 pub fn update(
     mut state: ResMut<State<GameState>>,
-    levels: Res<LevelList>,
-    mut level: ResMut<Level>,
+    mut current_level: ResMut<CurrentLevel>,
     interaction_query: Query<(&LevelId, &Interaction), (Changed<Interaction>, With<Button>)>,
 ) {
     for (level_id, interaction) in interaction_query.iter() {
         match interaction {
             Interaction::Clicked => {
-                *level = levels.levels[level_id.0].clone();
+                current_level.0 = level_id.0;
                 state.set(GameState::ChangeLevel).unwrap();
             }
             Interaction::Hovered | Interaction::None => {}

@@ -2,8 +2,8 @@ use bevy::prelude::*;
 
 use crate::{
     bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited},
-    map::{self, BoxData, EntityKind, Level},
-    Direction, GameState,
+    map::{self, BoxData, EntityKind, Level, LevelList},
+    Direction, GameState, CurrentLevel,
 };
 
 #[derive(Component)]
@@ -12,6 +12,16 @@ pub struct StateLocal;
 pub fn delete_local_entities(mut commands: Commands, to_remove: Query<(Entity, &StateLocal)>) {
     for (entity, _local) in to_remove.iter() {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+pub fn update_level_data(mut level: ResMut<Level>, levels: Res<LevelList>, current: Res<CurrentLevel>) {
+    *level = levels.levels[current.0].clone();
+}
+
+pub fn to_start(mut state: ResMut<State<GameState>>, input: Res<Input<KeyCode>>) {
+    if input.just_pressed(KeyCode::Escape) {
+        state.set(GameState::StartScreen).unwrap();
     }
 }
 
@@ -62,3 +72,4 @@ pub fn reset_bot_and_box_state(world: &mut World) {
             .remove::<VoidedOrExited>();
     }
 }
+
