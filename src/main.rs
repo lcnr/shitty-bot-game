@@ -88,20 +88,11 @@ fn main() {
         )
         .add_system_set(
             SystemSet::on_enter(GameState::Running)
-                .with_system(draw::init_timer.exclusive_system().before("update_map_sys"))
-                .with_system(draw::init_map_system.before("update_map_sys"))
+                .with_system(draw::init_timer.exclusive_system())
+                .with_system(draw::init_map_system)
                 .with_system(ui::refresh_mem)
                 .with_system(ui::running::init)
-                .with_system(ui::add_button::<StopButton>)
-                .with_system(
-                    |mut commands: Commands, mut query: Query<Entity, With<BotData>>| {
-                        for entity in query.iter_mut() {
-                            commands
-                                .entity(entity)
-                                .insert(BotState::new(Direction::Right));
-                        }
-                    },
-                ).label("enter_running"),
+                .with_system(ui::add_button::<StopButton>),
         )
         .add_system_set(
             SystemSet::on_update(GameState::Running)

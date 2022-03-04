@@ -99,7 +99,7 @@ impl Map {
                     '<' => Place::Ramp(Direction::Left),
                     '>' => Place::Ramp(Direction::Right),
                     ' ' => Place::Void,
-                    'X' => Place::Wall,
+                    '#' => Place::Wall,
                     'o' => Place::Exit,
                     _ => panic!("unexpected {:?}", c),
                 });

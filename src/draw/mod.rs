@@ -50,19 +50,28 @@ pub fn init_map_system(
     entities: Query<(Entity, &EntityKind, &GridPos)>,
     robots: Query<&BotData>,
 ) {
-    commands.spawn_bundle(DirectionalLightBundle {
-        transform: Transform::from_xyz(1.7, 10.0, 2.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    }).insert(StateLocal);
+    commands
+        .spawn_bundle(DirectionalLightBundle {
+            transform: Transform::from_xyz(1.7, 10.0, 2.0).looking_at(Vec3::ZERO, Vec3::Y),
+            ..Default::default()
+        })
+        .insert(StateLocal);
     let viewing_pos = Vec3::new(
-        (level.map.height as f32) * 0.7,
+        10.0,
+        17.0,
         15.0,
-        (level.map.height as f32) * 1.3,
     );
-    commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_translation(viewing_pos).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    }).insert(StateLocal);
+    commands
+        .spawn_bundle(PerspectiveCameraBundle {
+            transform: Transform::from_translation(viewing_pos)
+                .looking_at(Vec3::ZERO, Vec3::Y)
+                .with_translation(
+                    viewing_pos + (Vec3::X * level.map.width as f32)
+                        + (Vec3::Y * level.map.height as f32 / 3.0),
+                ),
+            ..Default::default()
+        })
+        .insert(StateLocal);
 
     let box_xy = shape::Box {
         min_x: -0.5,
