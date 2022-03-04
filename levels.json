@@ -5,6 +5,26 @@
     "bots": [[1, 1, "Right"]]
   },
   {
+    "map": "void-change-dir",
+    "boxes": [],
+    "bots": [[1, 1, "Right"]]
+  },
+  {
+    "map": "box-forced",
+    "boxes": [[2, 4]],
+    "bots": [[2, 1, "Down"]]
+  },
+  {
+    "map": "box-not-forced",
+    "boxes": [[2, 3]],
+    "bots": [[2, 1, "Down"]]
+  },
+  {
+    "map": "edge-2-box",
+    "boxes": [[2, 3]],
+    "bots": [[2, 1, "Down"]]
+  },
+  {
     "map": "start",
     "boxes":[[8, 7]],
     "bots": [[2, 2, "Right"]]

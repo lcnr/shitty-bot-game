@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::{
     bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited},
     map::{self, BoxData, EntityKind, Level, LevelList},
-    CurrentLevel, Direction, GameState,
+    CurrentLevel, GameState,
 };
 
 #[derive(Component)]
@@ -46,7 +46,7 @@ pub fn spawn_map_entities(
         commands
             .spawn()
             .insert(bot::BotData::new(bot_pos, dir))
-            .insert(bot::BotState::new(Direction::Right))
+            .insert(bot::BotState::new(dir))
             .insert(map::EntityKind::Robot);
     }
     for &box_pos in &level.boxes {
