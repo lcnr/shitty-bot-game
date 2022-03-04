@@ -56,7 +56,7 @@ pub fn init_map_system(
             ..Default::default()
         })
         .insert(StateLocal);
-    let viewing_pos = Vec3::new(10.0, 17.0, 15.0);
+    let viewing_pos = Vec3::new(7.0, 17.0, 10.0);
     commands
         .spawn_bundle(PerspectiveCameraBundle {
             transform: Transform::from_translation(viewing_pos)
