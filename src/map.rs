@@ -48,7 +48,7 @@ pub struct Level {
 
 impl Level {
     fn from_level_serde(level_serde: LevelSerde) -> Self {
-        let map_str = std::fs::read_to_string(format!("levels/{}.map", level_serde.map)).unwrap();
+        let map_str = std::fs::read_to_string(format!("assets/levels/{}.map", level_serde.map)).unwrap();
         let map = Map::from_str(&map_str);
         Level {
             map,

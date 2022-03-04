@@ -43,7 +43,7 @@ fn start_up_system(mut commands: Commands) {
 }
 
 fn main() {
-    let levels = map::read_levels("./levels.json");
+    let levels = map::read_levels("./assets/levels.json");
     dbg!(&levels);
     App::new()
         .add_plugins(DefaultPlugins)
