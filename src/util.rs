@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited},
+    bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited, BotState},
     map::{self, BoxData, EntityKind, Level, LevelList},
     CurrentLevel, GameState,
 };
@@ -46,7 +46,6 @@ pub fn spawn_map_entities(
         commands
             .spawn()
             .insert(bot::BotData::new(bot_pos, dir))
-            .insert(bot::BotState::new(dir))
             .insert(map::EntityKind::Robot);
     }
     for &box_pos in &level.boxes {
@@ -74,5 +73,6 @@ pub fn reset_bot_and_box_state(world: &mut World) {
             .entity_mut(entity)
             .insert(data)
             .remove::<VoidedOrExited>();
+        world.entity_mut(entity).remove::<BotState>();
     }
 }

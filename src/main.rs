@@ -70,6 +70,7 @@ fn main() {
         .add_system_set(
             SystemSet::on_enter(GameState::Programming)
                 .with_system(ui::add_button::<StartButton>)
+                .with_system(bot::init_state)
                 .with_system(util::reset_bot_and_box_state.exclusive_system())
                 .with_system(ui::refresh_mem)
                 .with_system(ui::programming::init)

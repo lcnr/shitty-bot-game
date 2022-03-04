@@ -488,3 +488,9 @@ pub fn level_complete_checker(
         state.set(GameState::StartScreen).unwrap();
     }
 }
+
+pub fn init_state(mut commands: Commands, bots: Query<(Entity, &BotData)>) {
+    for (e, data) in bots.iter() {
+        commands.entity(e).insert(BotState::new(data.start_dir));
+    }
+}
