@@ -101,7 +101,8 @@ fn main() {
                                 .insert(BotState::new(Direction::Right));
                         }
                     },
-                ).label("enter_running"),
+                )
+                .label("enter_running"),
         )
         .add_system_set(
             SystemSet::on_update(GameState::Running)
