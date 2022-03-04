@@ -5,8 +5,8 @@ use super::CornerButton;
 use super::MemUi;
 use crate::bot::edit::InstructionsEditor;
 use crate::bot::BotData;
-use crate::GameState;
 use crate::util::StateLocal;
+use crate::GameState;
 use bevy::prelude::*;
 
 pub struct StartButton(Entity);
@@ -21,8 +21,7 @@ const NO_ERROR: Color = Color::rgba(0.6, 0.7, 0.6, 0.5);
 const ERROR: Color = Color::rgba(0.8, 0.4, 0.4, 0.7);
 
 pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(UiCameraBundle::default());
-    let start_button = commands
+    let error_button = commands
         .spawn_bundle(ButtonBundle {
             style: Style {
                 size: Size::new(Val::Auto, Val::Auto),
@@ -58,7 +57,7 @@ pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .id();
 
-    commands.insert_resource(ErrorText(start_button));
+    commands.insert_resource(ErrorText(error_button));
 }
 
 pub fn update(
@@ -199,11 +198,13 @@ pub fn update(
                 let mut c = color.get_mut(mem_ui.user_values[i]).unwrap();
                 *c = VALID_MEM.into();
             } else {
-                let mut color = color.get_mut(if was_name {
-                    mem_ui.user_names[i]
-                } else {
-                    mem_ui.user_values[i]
-                }).unwrap();
+                let mut color = color
+                    .get_mut(if was_name {
+                        mem_ui.user_names[i]
+                    } else {
+                        mem_ui.user_values[i]
+                    })
+                    .unwrap();
                 *color = INVALID_MEM.into();
             }
 
@@ -229,7 +230,6 @@ pub fn update(
             let mut color = color.get_mut(id).unwrap();
             *color = SELECTED_MEM.into();
         }
-        
 
         if let Some(s) = mem.active_cell_data() {
             s.clear();
@@ -246,7 +246,11 @@ pub fn update(
     }
 }
 
-pub fn exit(mut commands: Commands, mut instructions: ResMut<InstructionsEditor>, mut bot_data: Query<&mut BotData>) {
+pub fn exit(
+    mut commands: Commands,
+    mut instructions: ResMut<InstructionsEditor>,
+    mut bot_data: Query<&mut BotData>,
+) {
     commands.remove_resource::<ErrorText>();
     // TODO: this is wrong, only one bot. move to update.
     instructions.on_selection_quit(None);

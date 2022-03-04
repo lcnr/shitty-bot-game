@@ -2,9 +2,8 @@ use bevy::prelude::*;
 
 use crate::{
     bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited},
-    draw::MapTile,
-    map::{self, BoxData, EntityKind, Level},
-    Direction, GameState,
+    map::{self, BoxData, EntityKind, Level, LevelList},
+    CurrentLevel, Direction, GameState,
 };
 
 #[derive(Component)]
@@ -16,27 +15,37 @@ pub fn delete_local_entities(mut commands: Commands, to_remove: Query<(Entity, &
     }
 }
 
+pub fn update_level_data(
+    mut level: ResMut<Level>,
+    levels: Res<LevelList>,
+    current: Res<CurrentLevel>,
+) {
+    *level = levels.levels[current.0].clone();
+}
+
+pub fn to_start(mut state: ResMut<State<GameState>>, input: Res<Input<KeyCode>>) {
+    if input.just_pressed(KeyCode::Escape) {
+        state.set(GameState::StartScreen).unwrap();
+    }
+}
+
 pub fn spawn_map_entities(
     mut commands: Commands,
     level: Res<Level>,
     mut state: ResMut<State<GameState>>,
     mut instructions_editor: ResMut<InstructionsEditor>,
-    map_tiles: Query<Entity, With<MapTile>>,
     queryyy: Query<Entity, With<EntityKind>>,
 ) {
     *instructions_editor = InstructionsEditor::new();
 
-    for e in map_tiles.iter() {
-        commands.entity(e).despawn();
-    }
     for e in queryyy.iter() {
         commands.entity(e).despawn();
     }
 
-    for &bot_pos in &level.bots {
+    for &(bot_pos, dir) in &level.bots {
         commands
             .spawn()
-            .insert(bot::BotData::new(bot_pos, Direction::Right))
+            .insert(bot::BotData::new(bot_pos, dir))
             .insert(bot::BotState::new(Direction::Right))
             .insert(map::EntityKind::Robot);
     }

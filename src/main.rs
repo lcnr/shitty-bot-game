@@ -6,11 +6,14 @@ use bevy::prelude::*;
 mod bot;
 mod draw;
 mod map;
+mod start;
 mod ui;
 mod util;
 
 use bot::BotData;
 use bot::BotState;
+use serde::Deserialize;
+use serde::Serialize;
 use ui::programming::StartButton;
 use ui::running::StopButton;
 
@@ -25,12 +28,16 @@ pub enum GameState {
     ChangeLevel,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
     Up,
     Down,
     Left,
     Right,
+}
+
+fn start_up_system(mut commands: Commands) {
+    commands.spawn_bundle(UiCameraBundle::default());
 }
 
 fn main() {
@@ -44,13 +51,20 @@ fn main() {
         .insert_resource(CurrentLevel(0))
         .insert_resource(bot::edit::InstructionsEditor::new())
         .insert_resource(draw::DrawUpdates::empty())
-        .add_system_set(SystemSet::on_enter(GameState::StartScreen).with_system(
-            |mut state: ResMut<State<GameState>>| {
-                state.set(GameState::ChangeLevel).unwrap();
-            },
-        ))
+        .add_startup_system(start_up_system)
         .add_system_set(
-            SystemSet::on_enter(GameState::ChangeLevel).with_system(util::spawn_map_entities),
+            SystemSet::on_enter(GameState::StartScreen)
+                .with_system(ui::clear_mem.exclusive_system())
+                .with_system(start::init),
+        )
+        .add_system_set(SystemSet::on_update(GameState::StartScreen).with_system(start::update))
+        .add_system_set(
+            SystemSet::on_enter(GameState::ChangeLevel)
+                .with_system(util::update_level_data.label("add_level"))
+                .with_system(util::spawn_map_entities.after("add_level")),
+        )
+        .add_system_set(
+            SystemSet::on_exit(GameState::StartScreen).with_system(util::delete_local_entities),
         )
         .add_system_set(SystemSet::on_exit(GameState::StartScreen).with_system(ui::initialize_mem))
         .add_system_set(
@@ -64,15 +78,7 @@ fn main() {
         .add_system_set(
             SystemSet::on_update(GameState::Programming)
                 .with_system(ui::programming::update)
-                .with_system(
-                    |mut input: ResMut<Input<KeyCode>>,
-                     mut game_state: ResMut<State<GameState>>| {
-                        if input.pressed(KeyCode::Escape) {
-                            input.release(KeyCode::Escape);
-                            game_state.set(GameState::ChangeLevel).unwrap();
-                        }
-                    },
-                ),
+                .with_system(util::to_start),
         )
         .add_system_set(
             SystemSet::on_exit(GameState::Programming)
@@ -104,7 +110,8 @@ fn main() {
                 .with_system(ui::running::update1)
                 .with_system(ui::refresh_mem.label("refresh"))
                 .with_system(ui::running::update2.after("refresh"))
-                .with_system(bot::level_complete_checker).after("enter_running"),
+                .with_system(bot::level_complete_checker)
+                .with_system(util::to_start),
         )
         .add_system_set(
             SystemSet::on_exit(GameState::Running)
