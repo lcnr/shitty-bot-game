@@ -6,7 +6,7 @@
   },
   {
     "map": "example.map",
-    "boxes":[[4,3],[5,3]],
-    "bots":[[3,3,"Right"]]
+    "boxes":[[9,5]],
+    "bots":[[1,2,"Right"]]
   }
 ]
