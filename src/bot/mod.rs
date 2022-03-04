@@ -164,8 +164,8 @@ pub fn run_bot_interpreter(
     }
 
     let facing_grid_pos = match state.dir {
-        Direction::Up => GridPos(pos.0, pos.1 + 1),
-        Direction::Down => GridPos(pos.0, pos.1 - 1),
+        Direction::Up => GridPos(pos.0, pos.1 - 1),
+        Direction::Down => GridPos(pos.0, pos.1 + 1),
         Direction::Left => GridPos(pos.0 - 1, pos.1),
         Direction::Right => GridPos(pos.0 + 1, pos.1),
     };
@@ -224,8 +224,10 @@ pub fn run_bot_interpreter(
             state.current_instruction = arg;
         }
         Instruction::IfWall | Instruction::IfNotWall => {
-            let to_jump_or_not_to_jump =
-                instr.is_positive() == matches!(map.tile(facing_grid_pos), Place::Wall);
+            let to_jump_or_not_to_jump = instr.is_positive()
+                == (matches!(map.tile(facing_grid_pos), Place::Wall)
+                    || (matches!(map.tile(pos), Place::LowerFloor)
+                        && matches!(map.tile(facing_grid_pos), Place::UpperFloor)));
             let target = state.read_value(bot);
 
             if to_jump_or_not_to_jump {
@@ -264,10 +266,10 @@ fn dir_to_adjacent_tile(from: GridPos, to: GridPos) -> Direction {
         return Direction::Left;
     }
     if from.1 + 1 == to.1 {
-        return Direction::Up;
+        return Direction::Down;
     }
     if from.1 == to.1 + 1 {
-        return Direction::Down;
+        return Direction::Up;
     }
     panic!("bad inputs {:?} {:?}", from, to);
 }
@@ -359,8 +361,8 @@ fn apply_bot_actions(
                 if let Some((e, _, pos)) = blocking_entities.iter().find(|(_, _, pos)| **pos == tar_tile_pos) && valid_move {
                     let dir = dir_to_adjacent_tile(cur_tile_pos, tar_tile_pos);
                     let new_tar_tile_pos = match dir {
-                        Direction::Up => GridPos(pos.0, pos.1 + 1),
-                        Direction::Down => GridPos(pos.0, pos.1 - 1),
+                        Direction::Up => GridPos(pos.0, pos.1 - 1),
+                        Direction::Down => GridPos(pos.0, pos.1 + 1),
                         Direction::Left => GridPos(pos.0 - 1, pos.1),
                         Direction::Right => GridPos(pos.0 + 1, pos.1),
                     };
@@ -456,8 +458,8 @@ pub fn progress_world(
         let q = queries.q0();
         let (_, _, pos, state) = q.get(bot_id).unwrap();
         let viewing_pos = match state.dir {
-            Direction::Up => GridPos(pos.0, pos.1 + 1),
-            Direction::Down => GridPos(pos.0, pos.1 - 1),
+            Direction::Up => GridPos(pos.0, pos.1 - 1),
+            Direction::Down => GridPos(pos.0, pos.1 + 1),
             Direction::Left => GridPos(pos.0 - 1, pos.1),
             Direction::Right => GridPos(pos.0 + 1, pos.1),
         };
