@@ -84,7 +84,7 @@ pub enum Instruction {
     TurnAround,
     TurnLeft,
     TurnRight,
-    Wait,
+    Skip,
     Goto,
     IfBox,
     IfWall,
@@ -105,7 +105,7 @@ impl Display for Instruction {
                 Instruction::TurnAround => "turn around",
                 Instruction::TurnLeft => "turn left",
                 Instruction::TurnRight => "turn right",
-                Instruction::Wait => "wait",
+                Instruction::Skip => "skip",
                 Instruction::Goto => "goto",
                 Instruction::IfBox => "if box",
                 Instruction::IfWall => "if wall",
@@ -122,11 +122,11 @@ impl Instruction {
     pub fn is_wide(self) -> bool {
         match self {
             Instruction::Halt
+            | Instruction::Skip
             | Instruction::TurnAround
             | Instruction::TurnLeft
             | Instruction::TurnRight => false,
             Instruction::Walk
-            | Instruction::Wait
             | Instruction::Goto
             | Instruction::IfBox
             | Instruction::IfWall
@@ -144,7 +144,7 @@ impl Instruction {
             | Instruction::TurnAround
             | Instruction::TurnLeft
             | Instruction::TurnRight
-            | Instruction::Wait
+            | Instruction::Skip
             | Instruction::Goto => unreachable!(),
             Instruction::IfBox | Instruction::IfWall | Instruction::IfEdge => true,
             Instruction::IfNotBox | Instruction::IfNotWall | Instruction::IfNotEdge => false,
@@ -213,11 +213,8 @@ pub fn run_bot_interpreter(
             };
             state.steps.push(Step::UpdateDir(new_dir));
         }
-        Instruction::Wait => {
-            let arg = state.read_value(bot);
-            for _ in 0..arg {
-                state.steps.push(Step::Wait);
-            }
+        Instruction::Skip => {
+            state.steps.push(Step::Wait);
         }
         Instruction::Goto => {
             let arg = state.read_value(bot);

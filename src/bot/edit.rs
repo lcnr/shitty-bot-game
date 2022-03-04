@@ -60,7 +60,7 @@ impl InstructionsEditor {
                         return;
                     }
                 },
-                Some("wait") => Instruction::Wait,
+                Some("skip") => Instruction::Skip,
                 Some("goto") => Instruction::Goto,
                 Some("if") => {
                     let mut next = words.next();
@@ -109,7 +109,7 @@ impl InstructionsEditor {
                 _ => {
                     self.error = Some(String::from(
                         "invalid start of command, \
-                        expected one of `halt`, `walk`, `turn`, `wait`, `goto`, \
+                        expected one of `halt`, `walk`, `turn`, `skip`, `goto`, \
                         or `if`. For more info about the available instructions, \
                         refer to the manual.",
                     ));

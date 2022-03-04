@@ -82,7 +82,7 @@ pub fn update2(
             .map_or(false, |i| i.is_wide())
         {
             let mut color = color_query
-                .get_mut(mem_ui.user_values[(instr + 1 % 32) as usize])
+                .get_mut(mem_ui.user_values[(instr as usize + 1) % 32])
                 .unwrap();
             *color = SELECTED_MEM.into();
         }
