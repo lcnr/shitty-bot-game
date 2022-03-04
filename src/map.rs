@@ -125,8 +125,11 @@ impl Map {
     }
 
     pub fn tile(&self, GridPos(x, y): GridPos) -> Place {
-        assert!(x < self.width && y < self.height);
-        self.layout[y * self.width + x]
+        if x < self.width && y < self.height {
+            self.layout[y * self.width + x]
+        } else {
+            Place::Void
+        }
     }
 }
 

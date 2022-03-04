@@ -15,9 +15,9 @@
     "bots": [[2, 1, "Down"]]
   },
   {
-    "map": "box-not-forced",
-    "boxes": [[2, 3]],
-    "bots": [[2, 1, "Down"]]
+    "map": "box-not-forced-intro",
+    "boxes": [[1, 2]],
+    "bots": [[3, 1, "Down"]]
   },
   {
     "map": "edge-2-box",
@@ -27,16 +27,36 @@
   {
     "map": "repetition-legitimizes",
     "boxes": [],
-    "bots": [[1, 1, "Right"]]
+    "bots": [[0, 0, "Right"]]
   },
   {
-    "map": "start",
-    "boxes":[[8, 7]],
-    "bots": [[2, 2, "Right"]]
+    "map": "different-lengths",
+    "boxes": [],
+    "bots": [[0, 0, "Right"]]
+  },
+  {
+    "map": "ramp",
+    "boxes": [[0, 2], [2, 2]],
+    "bots": [[0, 0, "Right"]]
+  },
+  {
+    "map": "guide-the-box",
+    "boxes": [[1, 1]],
+    "bots": [[1, 0, "Down"]]
+  },
+  {
+    "map": "box-not-forced",
+    "boxes": [[2, 3]],
+    "bots": [[2, 1, "Down"]]
   },
   {
     "map": "example",
     "boxes":[[9,5]],
     "bots":[[1,2,"Right"]]
+  },
+  {
+    "map": "stacker",
+    "boxes": [[1, 1], [2, 1], [3, 1], [6, 2]],
+    "bots": [[1, 0, "Down"]]
   }
 ]

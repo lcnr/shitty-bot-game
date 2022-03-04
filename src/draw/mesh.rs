@@ -8,8 +8,8 @@ pub fn slope_mesh(dir: Direction) -> Mesh {
     let (x0y0, x1y0, x1y1, x0y1) = match dir {
         Direction::Up => (LOWER_FLOOR, LOWER_FLOOR, UPPER_FLOOR, UPPER_FLOOR),
         Direction::Down => (UPPER_FLOOR, UPPER_FLOOR, LOWER_FLOOR, LOWER_FLOOR),
-        Direction::Left => (LOWER_FLOOR, UPPER_FLOOR, UPPER_FLOOR, LOWER_FLOOR),
-        Direction::Right => (UPPER_FLOOR, LOWER_FLOOR, LOWER_FLOOR, UPPER_FLOOR),
+        Direction::Left => (UPPER_FLOOR, LOWER_FLOOR, LOWER_FLOOR, UPPER_FLOOR),
+        Direction::Right => (LOWER_FLOOR, UPPER_FLOOR, UPPER_FLOOR, LOWER_FLOOR),
     };
 
     let vertices = &[

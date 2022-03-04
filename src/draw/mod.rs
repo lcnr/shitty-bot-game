@@ -63,8 +63,8 @@ pub fn init_map_system(
                 .looking_at(Vec3::ZERO, Vec3::Y)
                 .with_translation(
                     viewing_pos
-                        + (Vec3::X * level.map.width as f32)
-                        + (Vec3::Y * level.map.height as f32 / 3.0),
+                        + (Vec3::X * level.map.width as f32 * 0.7)
+                        + (Vec3::Y * level.map.height as f32 * 0.7),
                 ),
             ..Default::default()
         })
