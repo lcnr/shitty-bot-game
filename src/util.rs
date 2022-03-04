@@ -2,7 +2,6 @@ use bevy::prelude::*;
 
 use crate::{
     bot::{self, edit::InstructionsEditor, BotData, VoidedOrExited},
-    draw::MapTile,
     map::{self, BoxData, EntityKind, Level},
     Direction, GameState,
 };
@@ -21,14 +20,10 @@ pub fn spawn_map_entities(
     level: Res<Level>,
     mut state: ResMut<State<GameState>>,
     mut instructions_editor: ResMut<InstructionsEditor>,
-    map_tiles: Query<Entity, With<MapTile>>,
     queryyy: Query<Entity, With<EntityKind>>,
 ) {
     *instructions_editor = InstructionsEditor::new();
 
-    for e in map_tiles.iter() {
-        commands.entity(e).despawn();
-    }
     for e in queryyy.iter() {
         commands.entity(e).despawn();
     }

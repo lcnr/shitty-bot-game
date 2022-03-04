@@ -15,17 +15,20 @@ pub enum Place {
 #[derive(Clone, Debug)]
 pub struct LevelList {
     pub levels: Vec<Level>,
+    pub beaten: Vec<bool>,
 }
 
 pub fn read_levels(file: &str) -> LevelList {
     let string = std::fs::read_to_string(file).unwrap();
     let level_list: Vec<LevelSerde> = serde_json::from_str(&string).unwrap();
 
+    let beaten = vec![false; level_list.len()];
     LevelList {
         levels: level_list
             .into_iter()
             .map(Level::from_level_serde)
             .collect(),
+        beaten,
     }
 }
 

@@ -9,6 +9,7 @@ use crate::map::GridPos;
 use crate::map::Level;
 use crate::map::Map;
 use crate::map::Place;
+use crate::util::StateLocal;
 use crate::Direction;
 use bevy::prelude::*;
 
@@ -37,9 +38,6 @@ impl DrawUpdates {
     }
 }
 
-#[derive(Component, Debug, Clone, Copy)]
-pub struct MapTile;
-
 pub fn init_timer(world: &mut World) {
     world.insert_resource(DrawTimer(Timer::from_seconds(0.0, false)));
 }
@@ -52,20 +50,24 @@ pub fn init_map_system(
     entities: Query<(Entity, &EntityKind, &GridPos)>,
     robots: Query<&BotData>,
 ) {
-    commands.spawn_bundle(DirectionalLightBundle {
-        transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
-        ..Default::default()
-    });
+    commands
+        .spawn_bundle(DirectionalLightBundle {
+            transform: Transform::from_xyz(0.7, 1.0, 10.0).looking_at(Vec3::ZERO, Vec3::Z),
+            ..Default::default()
+        })
+        .insert(StateLocal);
     let viewing_pos = Vec3::new(level.map.width as f32, level.map.height as f32, 15.0);
-    commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_translation(viewing_pos)
-            .looking_at(Vec3::ZERO, Vec3::Z)
-            .with_translation(
-                viewing_pos - (Vec3::X * level.map.width as f32 / 3.0)
-                    + (Vec3::Y * level.map.height as f32 / 3.0),
-            ),
-        ..Default::default()
-    });
+    commands
+        .spawn_bundle(PerspectiveCameraBundle {
+            transform: Transform::from_translation(viewing_pos)
+                .looking_at(Vec3::ZERO, Vec3::Z)
+                .with_translation(
+                    viewing_pos - (Vec3::X * level.map.width as f32 / 3.0)
+                        + (Vec3::Y * level.map.height as f32 / 3.0),
+                ),
+            ..Default::default()
+        })
+        .insert(StateLocal);
 
     let box_xy = shape::Box {
         min_x: -0.5,
@@ -95,7 +97,7 @@ pub fn init_map_system(
                             transform,
                             ..Default::default()
                         })
-                        .insert(MapTile);
+                        .insert(StateLocal);
                 }
                 Place::LowerFloor => {
                     commands
@@ -108,7 +110,7 @@ pub fn init_map_system(
                             transform,
                             ..Default::default()
                         })
-                        .insert(MapTile);
+                        .insert(StateLocal);
                 }
                 Place::Ramp(dir) => {
                     commands
@@ -118,7 +120,7 @@ pub fn init_map_system(
                             transform,
                             ..Default::default()
                         })
-                        .insert(MapTile);
+                        .insert(StateLocal);
                 }
                 Place::Void => {}
                 Place::Wall => {
@@ -132,7 +134,7 @@ pub fn init_map_system(
                             transform,
                             ..Default::default()
                         })
-                        .insert(MapTile);
+                        .insert(StateLocal);
                 }
                 Place::Exit => {
                     commands
@@ -145,7 +147,7 @@ pub fn init_map_system(
                             transform,
                             ..Default::default()
                         })
-                        .insert(MapTile);
+                        .insert(StateLocal);
                 }
             }
         }

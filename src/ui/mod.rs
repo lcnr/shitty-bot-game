@@ -172,7 +172,6 @@ pub trait CornerButton: Sync + Send + 'static {
 }
 
 pub fn add_button<T: CornerButton>(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(UiCameraBundle::default());
     let start_button = commands
         .spawn_bundle(ButtonBundle {
             style: Style {

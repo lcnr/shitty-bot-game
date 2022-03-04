@@ -6,6 +6,7 @@ use bevy::prelude::*;
 mod bot;
 mod draw;
 mod map;
+mod start;
 mod ui;
 mod util;
 
@@ -33,6 +34,10 @@ pub enum Direction {
     Right,
 }
 
+fn start_up_system(mut commands: Commands) {
+    commands.spawn_bundle(UiCameraBundle::default());
+}
+
 fn main() {
     let levels = map::read_levels("./levels.json");
     App::new()
@@ -43,13 +48,14 @@ fn main() {
         .insert_resource(CurrentLevel(0))
         .insert_resource(bot::edit::InstructionsEditor::new())
         .insert_resource(draw::DrawUpdates::empty())
-        .add_system_set(SystemSet::on_enter(GameState::StartScreen).with_system(
-            |mut state: ResMut<State<GameState>>| {
-                state.set(GameState::ChangeLevel).unwrap();
-            },
-        ))
+        .add_startup_system(start_up_system)
+        .add_system_set(SystemSet::on_enter(GameState::StartScreen).with_system(start::init))
+        .add_system_set(SystemSet::on_update(GameState::StartScreen).with_system(start::update))
         .add_system_set(
             SystemSet::on_enter(GameState::ChangeLevel).with_system(util::spawn_map_entities),
+        )
+        .add_system_set(
+            SystemSet::on_exit(GameState::StartScreen).with_system(util::delete_local_entities),
         )
         .add_system_set(SystemSet::on_exit(GameState::StartScreen).with_system(ui::initialize_mem))
         .add_system_set(

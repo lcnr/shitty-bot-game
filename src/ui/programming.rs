@@ -21,8 +21,7 @@ const NO_ERROR: Color = Color::rgba(0.6, 0.7, 0.6, 0.5);
 const ERROR: Color = Color::rgba(0.8, 0.4, 0.4, 0.7);
 
 pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(UiCameraBundle::default());
-    let start_button = commands
+    let error_button = commands
         .spawn_bundle(ButtonBundle {
             style: Style {
                 size: Size::new(Val::Auto, Val::Auto),
@@ -58,7 +57,7 @@ pub fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .id();
 
-    commands.insert_resource(ErrorText(start_button));
+    commands.insert_resource(ErrorText(error_button));
 }
 
 pub fn update(
