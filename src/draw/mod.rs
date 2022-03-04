@@ -56,10 +56,13 @@ pub fn init_map_system(
         transform: Transform::from_xyz(1.7, 10.0, 2.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
     });
-    let viewing_pos = Vec3::new((level.map.height as f32) * 0.7, 15.0, (level.map.height as f32) * 1.3);
+    let viewing_pos = Vec3::new(
+        (level.map.height as f32) * 0.7,
+        15.0,
+        (level.map.height as f32) * 1.3,
+    );
     commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_translation(viewing_pos)
-            .looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_translation(viewing_pos).looking_at(Vec3::ZERO, Vec3::Y),
         ..Default::default()
     });
 
@@ -111,7 +114,8 @@ pub fn init_map_system(
                         .spawn_bundle(PbrBundle {
                             mesh: meshes.add(mesh::slope_mesh(dir)),
                             material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-                            transform: transform.looking_at(transform.translation - Vec3::Y, Vec3::Z),
+                            transform: transform
+                                .looking_at(transform.translation - Vec3::Y, Vec3::Z),
                             ..Default::default()
                         })
                         .insert(MapTile);
@@ -156,8 +160,10 @@ pub fn init_map_system(
                 commands.get_or_spawn(entity).insert_bundle(PbrBundle {
                     mesh: meshes.add(mesh::robot_mesh()),
                     material: materials.add(Color::rgb(0.25, 0.12, 0.1).into()),
-                    transform: transform
-                        .with_rotation(Quat::from_rotation_y(dir_to_radians(state.start_dir))),
+                    transform: transform.with_rotation(
+                        Quat::from_rotation_y(dir_to_radians(state.start_dir))
+                            * Quat::from_rotation_x(std::f32::consts::PI * 1.5),
+                    ),
                     ..Default::default()
                 });
             }
@@ -220,15 +226,17 @@ pub fn update_map_system(
             Step::MoveFail => {}
             Step::UpdateDir(old, new) => {
                 let mut transform = transforms.get_mut(entity).expect("sus step");
-                let mut old_rad = dir_to_radians(old);
+                let old_rad = dir_to_radians(old);
                 let new_rad = dir_to_radians(new);
-                if new_rad - old_rad > std::f32::consts::PI {
-                    old_rad += std::f32::consts::PI * 2.0;
-                } else if old_rad - new_rad > std::f32::consts::PI {
-                    old_rad -= std::f32::consts::PI * 2.0;
+                let old_rot = Quat::from_rotation_y(old_rad)
+                    * Quat::from_rotation_x(dir_to_radians(Direction::Right));
+                let new_rot = Quat::from_rotation_y(new_rad)
+                    * Quat::from_rotation_x(dir_to_radians(Direction::Right));
+                if old_rot.dot(new_rot) < 0. {
+                    transform.rotation = (-old_rot).slerp(new_rot, timer.percent());
+                } else {
+                    transform.rotation = old_rot.slerp(new_rot, timer.percent());
                 }
-                let angle = interpolate(timer.percent(), old_rad, new_rad);
-                *transform = transform.with_rotation(Quat::from_rotation_y(angle));
             }
         }
     }

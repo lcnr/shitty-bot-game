@@ -191,7 +191,7 @@ pub fn run_bot_interpreter(
                 Direction::Up => Direction::Down,
                 Direction::Down => Direction::Up,
                 Direction::Left => Direction::Right,
-                Direction::Right => Direction::Right,
+                Direction::Right => Direction::Left,
             };
             state.steps.push(Step::UpdateDir(new_dir));
         }
@@ -374,8 +374,8 @@ fn apply_bot_actions(
             }
 
             let tar_grid_pos = match state.dir {
-                Direction::Up => GridPos(cur_grid_pos.0, cur_grid_pos.1 + 1),
-                Direction::Down => GridPos(cur_grid_pos.0, cur_grid_pos.1 - 1),
+                Direction::Up => GridPos(cur_grid_pos.0, cur_grid_pos.1 - 1),
+                Direction::Down => GridPos(cur_grid_pos.0, cur_grid_pos.1 + 1),
                 Direction::Left => GridPos(cur_grid_pos.0 - 1, cur_grid_pos.1),
                 Direction::Right => GridPos(cur_grid_pos.0 + 1, cur_grid_pos.1),
             };
