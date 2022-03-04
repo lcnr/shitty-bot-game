@@ -1,11 +1,16 @@
 [
   {
-    "map": "start.map",
+    "map": "walk-2",
+    "boxes": [],
+    "bots": [[1, 1, "Right"]]
+  },
+  {
+    "map": "start",
     "boxes":[[8, 7]],
     "bots": [[2, 2, "Right"]]
   },
   {
-    "map": "example.map",
+    "map": "example",
     "boxes":[[9,5]],
     "bots":[[1,2,"Right"]]
   }
