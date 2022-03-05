@@ -123,7 +123,7 @@ pub fn update(
                 if let Some((b, c)) = mem.active_cell {
                     update_cell = Some(Some(match (b, cell_empty) {
                         (true, true) => (false, c),
-                        _ => (true, c + 1 % 32),
+                        _ => (true, (c + 1) % 32),
                     }));
                     break;
                 } else {
