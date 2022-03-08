@@ -1,5 +1,5 @@
 use crate::Direction;
-use bevy::prelude::*;
+use bevy::{prelude::*, reflect::TypeUuid};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy)]
@@ -12,24 +12,11 @@ pub enum Place {
     Exit,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, TypeUuid)]
+#[uuid = "8ffabd85-acf4-40ba-a784-c82a10ccd488"]
 pub struct LevelList {
     pub levels: Vec<Level>,
     pub beaten: Vec<bool>,
-}
-
-pub fn read_levels(file: &str) -> LevelList {
-    let string = std::fs::read_to_string(file).unwrap();
-    let level_list: Vec<LevelSerde> = serde_json::from_str(&string).unwrap();
-
-    let beaten = vec![false; level_list.len()];
-    LevelList {
-        levels: level_list
-            .into_iter()
-            .map(Level::from_level_serde)
-            .collect(),
-        beaten,
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -47,10 +34,30 @@ pub struct Level {
 }
 
 impl Level {
-    fn from_level_serde(level_serde: LevelSerde) -> Self {
-        let map_str =
-            std::fs::read_to_string(format!("assets/levels/{}.map", level_serde.map)).unwrap();
-        let map = Map::from_str(&map_str);
+    pub async fn from_level_serde(level_serde: LevelSerde) -> Self {
+        let map;
+        #[cfg(target_arch = "wasm32")]
+        {
+            use bevy_asset::AssetIo;
+            let assetio = bevy_asset::WasmAssetIo::new("./assets/");
+            let bytes = assetio
+                .load_path(std::path::Path::new(&format!(
+                    "./levels/{}.map",
+                    level_serde.map
+                )))
+                .await
+                .unwrap();
+            let string = String::from_utf8(bytes).unwrap();
+            map = Map::from_str(&string);
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let map_str =
+                std::fs::read_to_string(format!("./assets/levels/{}.map", level_serde.map))
+                    .unwrap();
+            map = Map::from_str(&map_str);
+        }
+
         Level {
             map,
             boxes: level_serde

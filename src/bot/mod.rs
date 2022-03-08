@@ -313,10 +313,6 @@ fn apply_bot_actions(
                 map: &Map,
                 blocking_entities: Query<(Entity, &EntityKind, &GridPos), Without<VoidedOrExited>>,
             ) -> Vec<(Entity, draw::Step)> {
-                eprintln!(
-                    "is_valid_move({:?}, {:?}, {:?}, {:?})",
-                    cur_tile_pos, cur_tile, tar_tile_pos, tar_tile
-                );
                 let valid_move = match cur_tile {
                     Place::UpperFloor => match tar_tile {
                         Place::LowerFloor | Place::UpperFloor | Place::Void | Place::Exit => true,

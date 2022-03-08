@@ -5,6 +5,7 @@ use bevy::prelude::*;
 
 mod bot;
 mod draw;
+mod level_loader;
 mod map;
 mod start;
 mod ui;
@@ -24,6 +25,7 @@ pub struct CurrentLevel(usize);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GameState {
+    LoadScreen,
     StartScreen,
     Programming,
     Running,
@@ -43,17 +45,21 @@ fn start_up_system(mut commands: Commands) {
 }
 
 fn main() {
-    let levels = map::read_levels("./assets/levels.json");
-    dbg!(&levels);
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_state(GameState::StartScreen)
-        .insert_resource(levels.clone())
-        .insert_resource(levels.levels[0].clone())
-        .insert_resource(CurrentLevel(0))
+        .add_asset::<map::LevelList>()
+        .init_asset_loader::<level_loader::LevelListLoader>()
+        .add_state(GameState::LoadScreen)
         .insert_resource(bot::edit::InstructionsEditor::new())
         .insert_resource(draw::DrawUpdates::empty())
+        .add_startup_system(level_loader::start_load_level_assets)
         .add_startup_system(start_up_system)
+        //
+        .add_system_set(
+            SystemSet::on_update(GameState::LoadScreen)
+                .with_system(level_loader::setup_level_resources),
+        )
+        //
         .add_system_set(
             SystemSet::on_enter(GameState::StartScreen)
                 .with_system(ui::clear_mem.exclusive_system())
@@ -61,14 +67,17 @@ fn main() {
         )
         .add_system_set(SystemSet::on_update(GameState::StartScreen).with_system(start::update))
         .add_system_set(
+            SystemSet::on_exit(GameState::StartScreen)
+                .with_system(util::delete_local_entities)
+                .with_system(ui::init),
+        )
+        //
+        .add_system_set(
             SystemSet::on_enter(GameState::ChangeLevel)
                 .with_system(util::update_level_data.label("add_level"))
                 .with_system(util::spawn_map_entities.after("add_level")),
         )
-        .add_system_set(
-            SystemSet::on_exit(GameState::StartScreen).with_system(util::delete_local_entities),
-        )
-        .add_system_set(SystemSet::on_exit(GameState::StartScreen).with_system(ui::init))
+        //
         .add_system_set(
             SystemSet::on_enter(GameState::Programming)
                 .with_system(ui::add_button::<StartButton>)
@@ -88,6 +97,7 @@ fn main() {
                 .with_system(util::delete_local_entities.after("exit"))
                 .with_system(ui::remove_button::<StartButton>.after("exit")),
         )
+        //
         .add_system_set(
             SystemSet::on_enter(GameState::Running)
                 .with_system(draw::init_timer.exclusive_system())
@@ -123,5 +133,6 @@ fn main() {
                     },
                 ),
         )
+        //
         .run();
 }
